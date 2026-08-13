@@ -1,15 +1,22 @@
-import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
-import './globals.css'
-
-const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
+import type { Viewport } from 'next'
 
 export const metadata: Metadata = {
   title: 'Aureo — Tu patrimonio en vivo',
   description: 'Banco, inversión y gastos en un número que respira',
   manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'Aureo',
+  },
+}
+
+export const viewport: Viewport = {
   themeColor: '#0a0a0f',
-  viewport: 'width=device-width, initial-scale=1, maximum-scale=1',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+},
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
