@@ -94,11 +94,15 @@ export default function App() {
     })()
   }, [])
 
-  // Refresco de precios cada 60s
+  // Refresco cada 60s: precios y gastos (los que entran por el Atajo de iPhone)
   useEffect(() => {
     const t = setInterval(async () => {
-      const p = await api('precios').catch(() => null)
+      const [p, g] = await Promise.all([
+        api('precios').catch(() => null),
+        api('gastos?limit=100').catch(() => null),
+      ])
       if (p?.data) setPrecios(p.data)
+      if (g?.items) setGastos(g.items)
     }, 60_000)
     return () => clearInterval(t)
   }, [])
