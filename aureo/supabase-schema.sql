@@ -113,9 +113,10 @@ create table if not exists deudas (
 );
 create index if not exists deudas_user_idx on deudas (user_id);
 
--- Netflix y Spotify pasan de recurrentes a suscripciones: si vienen del seed
--- antiguo hay que quitarlos o se cuentan dos veces en el compromiso mensual.
-delete from recurrentes where categoria = 'Suscripcion';
+-- Los recurrentes fijos (nomina, prestamo, IRPF, transferencias) los sirve la
+-- app desde lib/recurrentes.ts cuando la tabla esta vacia. La tabla solo
+-- guarda los que crees tu, asi que dejarla vacia es el estado correcto.
+truncate table recurrentes;
 
 -- ============ RLS ============
 -- Todo el acceso pasa hoy por las rutas /api con la service role key, que

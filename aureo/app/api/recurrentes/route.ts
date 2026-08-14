@@ -4,7 +4,14 @@ import { RECURRENTES_BASE } from '@/lib/recurrentes'
 
 export const dynamic = 'force-dynamic'
 
-// GET /api/recurrentes — si la tabla esta vacia (o no hay DB), devuelve los fijos
+/**
+ * GET /api/recurrentes
+ *
+ * Con la tabla vacia devuelve los fijos del codigo, pero NO los inserta: la
+ * app dispara varias peticiones al cargar y todas veian la tabla vacia a la
+ * vez, asi que cada una sembraba su copia (36 filas = 6 seeds x 6 fijos).
+ * Sirviendolos como configuracion no hay carrera que perder.
+ */
 export async function GET() {
   const db = supabaseAdmin()
   if (!db) return NextResponse.json({ ok: true, items: RECURRENTES_BASE })
@@ -15,12 +22,6 @@ export async function GET() {
     .eq('user_id', USER_ID)
     .order('dia', { ascending: true })
 
-  if (error) return NextResponse.json({ ok: true, items: RECURRENTES_BASE })
-  if (!data?.length) {
-    const seed = RECURRENTES_BASE.map(({ id, ...r }) => ({ ...r, user_id: USER_ID }))
-    const { data: creados } = await db.from('recurrentes').insert(seed).select()
-    return NextResponse.json({ ok: true, items: creados ?? RECURRENTES_BASE })
-  }
-
+  if (error || !data?.length) return NextResponse.json({ ok: true, items: RECURRENTES_BASE })
   return NextResponse.json({ ok: true, items: data })
 }
