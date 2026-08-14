@@ -29,6 +29,9 @@ export async function POST(req: NextRequest) {
 
   // 3. Insertar gasto en Supabase
   const db = supabaseAdmin()
+  if (!db) {
+    return NextResponse.json({ error: 'Supabase no está configurado' }, { status: 503 })
+  }
   const { data, error } = await db
     .from('gastos')
     .insert({
@@ -56,6 +59,12 @@ export async function POST(req: NextRequest) {
 
 // GET /api/gastos — listar gastos del mes actual
 export async function GET(req: NextRequest) {
+  const auth = req.headers.get('authorization')
+  const secret = process.env.SHORTCUT_SECRET
+  if (!secret || auth !== `Bearer ${secret}`) {
+    return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  }
+
   const { searchParams } = new URL(req.url)
   const user_id = searchParams.get('user_id')
   const mes = searchParams.get('mes') // formato: '2026-08'
@@ -65,6 +74,9 @@ export async function GET(req: NextRequest) {
   }
 
   const db = supabaseAdmin()
+  if (!db) {
+    return NextResponse.json({ error: 'Supabase no está configurado' }, { status: 503 })
+  }
   let query = db
     .from('gastos')
     .select('*')

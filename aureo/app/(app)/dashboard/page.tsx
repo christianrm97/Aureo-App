@@ -56,6 +56,7 @@ export default function Dashboard() {
   // Suscripción realtime a gastos
   const cargarDatos = useCallback(async () => {
     setLoading(true)
+    if (!supabase) { setLoading(false); return }
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setLoading(false); return }
 
@@ -106,14 +107,16 @@ export default function Dashboard() {
 
   // Realtime: escuchar nuevos gastos
   useEffect(() => {
-    const channel = supabase
+    if (!supabase) return
+    const client = supabase
+    const channel = client
       .channel('gastos-realtime')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'gastos' }, (payload) => {
         setGastos(prev => [payload.new as any, ...prev.slice(0, 19)])
       })
       .subscribe()
 
-    return () => { supabase.removeChannel(channel) }
+    return () => { client.removeChannel(channel) }
   }, [])
 
   const gastosEsteMes = gastos.reduce((a, g) => {

@@ -17,6 +17,7 @@ export default function BotonGasto({ onGastoCreado }: { onGastoCreado: () => voi
   const guardar = async () => {
     if (!nota.trim() || !importe) return
     setGuardando(true)
+    if (!supabase) { setGuardando(false); return }
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setGuardando(false); return }
