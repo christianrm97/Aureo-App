@@ -1,5 +1,27 @@
 -- AUREO — schema Supabase (Postgres)
--- Ejecutar en el SQL Editor del proyecto.
+-- Ejecutar en el SQL Editor del proyecto. Es idempotente: se puede repetir.
+
+-- ============ LIMPIEZA SEGURA ============
+-- Si una tabla existe con una forma antigua, se recrea SOLO si esta vacia.
+-- Con datos dentro no se toca: el script fallara mas abajo y habra que migrar
+-- a mano, que es justo lo que queremos antes de perder gastos.
+do $$
+declare
+  t text;
+  n bigint;
+begin
+  foreach t in array array['gastos', 'recurrentes', 'cuentas'] loop
+    if to_regclass('public.' || t) is not null then
+      execute format('select count(*) from %I', t) into n;
+      if n = 0 then
+        execute format('drop table %I cascade', t);
+        raise notice 'Tabla % vacia: recreada', t;
+      else
+        raise notice 'Tabla % con % filas: se conserva', t, n;
+      end if;
+    end if;
+  end loop;
+end $$;
 
 -- ============ GASTOS ============
 create table if not exists gastos (
@@ -58,6 +80,3 @@ alter table cuentas      enable row level security;
 -- create policy "own_gastos"      on gastos      for all using (auth.uid()::text = user_id);
 -- create policy "own_recurrentes" on recurrentes for all using (auth.uid()::text = user_id);
 -- create policy "own_cuentas"     on cuentas     for all using (auth.uid()::text = user_id);
-
--- ============ REALTIME ============
-alter publication supabase_realtime add table gastos;
