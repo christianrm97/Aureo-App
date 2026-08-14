@@ -1,46 +1,34 @@
 import type { Config } from 'tailwindcss'
 
 const config: Config = {
-  content: ['./app/**/*.{ts,tsx}', './components/**/*.{ts,tsx}', './lib/**/*.{ts,tsx}'],
+  content: ['./app/**/*.{js,jsx,ts,tsx}', './lib/**/*.{js,jsx,ts,tsx}'],
   theme: {
     extend: {
       colors: {
-        'aureo-bg':       '#0a0a0f',
-        'aureo-surface':  '#111118',
-        'aureo-surface2': '#1a1a24',
-        'aureo-border':   'rgba(255,255,255,0.07)',
-        'aureo-text':     '#f5f5f7',
-        'aureo-muted':    '#8e8ea0',
-        'aureo-green':    '#00c896',
-        'aureo-red':      '#ff4d6a',
-        'aureo-blue':     '#4a9eff',
-        'aureo-yellow':   '#ffc542',
+        'aureo-bg':          '#F4F1F7',
+        'aureo-surface':     '#FFFFFF',
+        'aureo-surface-2':   '#FAF8FC',
+        'aureo-border':      '#ECE7F1',
+        'aureo-purple':      '#6C2BD9',
+        'aureo-purple-dark': '#4A1D9E',
+        'aureo-purple-soft': '#EFE7FB',
+        'aureo-purple-mid':  '#8B5CF6',
+        'aureo-text':        '#14101B',
+        'aureo-text-dim':    '#6B647A',
+        'aureo-text-mute':   '#9A93A8',
+        'aureo-green':       '#22C55E',
+        'aureo-red':         '#EF4444',
+        'aureo-blue':        '#3B82F6',
+        'aureo-amber':       '#F59E0B',
+        'aureo-pink':        '#EC4899',
+        'aureo-teal':        '#14B8A6',
+      },
+      borderRadius: {
+        'aureo':    '24px',
+        'aureo-lg': '28px',
       },
       fontFamily: {
         sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
-      },
-      borderRadius: {
-        'aire': '16px',
-        'aureo-sm': '10px',
-      },
-      animation: {
-        'slide-up':    'slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards',
-        'fade-in':     'fade-in 0.3s ease forwards',
-        'pulse-green': 'pulse-green 2s ease-in-out infinite',
-      },
-      keyframes: {
-        'slide-up': {
-          from: { transform: 'translateY(20px)', opacity: '0' },
-          to:   { transform: 'translateY(0)',     opacity: '1' },
-        },
-        'fade-in': {
-          from: { opacity: '0' },
-          to:   { opacity: '1' },
-        },
-        'pulse-green': {
-          '0%, 100%': { opacity: '1' },
-          '50%':       { opacity: '0.65' },
-        },
       },
     },
   },

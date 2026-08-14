@@ -1,57 +1,58 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 
-// Cachear precios 60 segundos para no martillar las APIs
 export const revalidate = 60
 
-// GET /api/precios?tickers=CSPX,BTC-USD,ETH-USD
-export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url)
-  const tickers = searchParams.get('tickers')?.split(',') ?? []
+const SIMBOLOS = [
+  { id: 'sp500',    symbol: 'SPY',       nombre: 'S&P 500' },
+  { id: 'sp500eur', symbol: 'CSPX.L',    nombre: 'S&P 500 EUR' },
+  { id: 'eurusd',   symbol: 'EURUSD=X',  nombre: 'EUR / USD' },
+] as const
 
-  const precios: Record<string, { precio: number; cambio: number; cambio_pct: number }> = {}
+interface Precio {
+  id: string
+  symbol: string
+  nombre: string
+  currency: string
+  price: number
+  previous: number
+  changePct: number
+  marketState: string
+}
 
-  await Promise.allSettled(
-    tickers.map(async (ticker) => {
-      try {
-        // Cripto via CoinCap (gratis, sin auth)
-        if (['BTC', 'ETH', 'SOL', 'BTC-USD', 'ETH-USD'].includes(ticker)) {
-          const slug = ticker.replace('-USD', '').toLowerCase()
-          const res = await fetch(`https://api.coincap.io/v2/assets/${slug}`, {
-            next: { revalidate: 60 }
-          })
-          const json = await res.json()
-          const p = parseFloat(json.data?.priceUsd ?? '0')
-          const cambio = parseFloat(json.data?.changePercent24Hr ?? '0')
-          precios[ticker] = { precio: p, cambio: (p * cambio) / 100, cambio_pct: cambio }
-          return
-        }
+async function leerYahoo(s: (typeof SIMBOLOS)[number]): Promise<Precio | null> {
+  try {
+    const res = await fetch(
+      `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(s.symbol)}?interval=1d&range=5d`,
+      { headers: { 'User-Agent': 'Mozilla/5.0' }, next: { revalidate: 60 } },
+    )
+    if (!res.ok) return null
+    const json = await res.json()
+    const meta = json?.chart?.result?.[0]?.meta
+    const price = Number(meta?.regularMarketPrice)
+    const previous = Number(meta?.chartPreviousClose ?? meta?.previousClose)
+    if (!Number.isFinite(price) || !Number.isFinite(previous) || previous === 0) return null
 
-        // Fondos/ETF via Yahoo Finance (gratuito)
-        const encoded = encodeURIComponent(ticker)
-        const res = await fetch(
-          `https://query1.finance.yahoo.com/v8/finance/chart/${encoded}?interval=1d&range=2d`,
-          {
-            headers: { 'User-Agent': 'Mozilla/5.0' },
-            next: { revalidate: 60 }
-          }
-        )
-        const json = await res.json()
-        const meta = json?.chart?.result?.[0]?.meta
-        if (meta) {
-          const precio = meta.regularMarketPrice ?? 0
-          const prev = meta.previousClose ?? precio
-          const cambio = precio - prev
-          precios[ticker] = {
-            precio,
-            cambio,
-            cambio_pct: prev > 0 ? (cambio / prev) * 100 : 0,
-          }
-        }
-      } catch (e) {
-        console.warn(`No se pudo obtener precio de ${ticker}:`, e)
-      }
-    })
-  )
+    return {
+      id: s.id,
+      symbol: s.symbol,
+      nombre: s.nombre,
+      currency: meta?.currency ?? 'USD',
+      price,
+      previous,
+      changePct: ((price - previous) / previous) * 100,
+      marketState: meta?.marketState ?? 'UNKNOWN',
+    }
+  } catch {
+    return null
+  }
+}
 
-  return NextResponse.json({ precios, timestamp: new Date().toISOString() })
+// GET /api/precios — cotizaciones en vivo (Yahoo Finance), cache 60s
+export async function GET() {
+  const resultados = await Promise.all(SIMBOLOS.map(leerYahoo))
+  const data: Record<string, Precio> = {}
+  for (const p of resultados) {
+    if (p) data[p.id] = p
+  }
+  return NextResponse.json({ ok: true, data })
 }

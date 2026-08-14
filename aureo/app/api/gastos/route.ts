@@ -1,98 +1,81 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase'
+import { supabaseAdmin, USER_ID } from '@/lib/supabase'
+import { validarGasto } from '@/lib/gastos'
 
-// POST /api/gastos
-// Llamado desde el Atajo de iPhone
-// Headers: { Authorization: 'Bearer <SHORTCUT_SECRET>' }
-// Body: { nota, importe, categoria, user_id }
-export async function POST(req: NextRequest) {
-  // 1. Verificar token secreto
-  const auth = req.headers.get('authorization')
+export const dynamic = 'force-dynamic'
+
+const SIN_DB = { ok: false, error: 'Supabase sin configurar' } as const
+
+/** El Atajo de iPhone manda `Authorization: Bearer <SHORTCUT_SECRET>`. */
+function esAtajo(req: NextRequest): boolean {
   const secret = process.env.SHORTCUT_SECRET
-  if (!secret || auth !== `Bearer ${secret}`) {
-    return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-  }
+  return Boolean(secret) && req.headers.get('authorization') === `Bearer ${secret}`
+}
 
-  // 2. Parsear body
-  let body: { nota: string; importe: number; categoria: string; user_id: string }
+// GET /api/gastos?limit=100
+export async function GET(req: NextRequest) {
+  const db = supabaseAdmin()
+  if (!db) return NextResponse.json({ ok: true, items: [] })
+
+  const limitParam = Number(new URL(req.url).searchParams.get('limit'))
+  const limit = Number.isFinite(limitParam) && limitParam > 0 ? Math.min(limitParam, 500) : 100
+
+  const { data, error } = await db
+    .from('gastos')
+    .select('*')
+    .eq('user_id', USER_ID)
+    .order('ts', { ascending: false })
+    .limit(limit)
+
+  if (error) return NextResponse.json({ ok: false, error: 'Error cargando gastos' }, { status: 500 })
+  return NextResponse.json({ ok: true, items: data })
+}
+
+// POST /api/gastos — desde la web o desde el Atajo de iPhone
+export async function POST(req: NextRequest) {
+  let body: unknown
   try {
     body = await req.json()
   } catch {
-    return NextResponse.json({ error: 'Body inválido' }, { status: 400 })
+    return NextResponse.json({ ok: false, error: 'Body inválido' }, { status: 400 })
   }
 
-  const { nota, importe, categoria, user_id } = body
-
-  if (!nota || !importe || !categoria || !user_id) {
-    return NextResponse.json({ error: 'Faltan campos: nota, importe, categoria, user_id' }, { status: 422 })
+  const validado = validarGasto(body)
+  if ('error' in validado) {
+    return NextResponse.json({ ok: false, error: validado.error }, { status: 422 })
   }
 
-  // 3. Insertar gasto en Supabase
   const db = supabaseAdmin()
-  if (!db) {
-    return NextResponse.json({ error: 'Supabase no está configurado' }, { status: 503 })
-  }
+  if (!db) return NextResponse.json(SIN_DB, { status: 503 })
+
   const { data, error } = await db
     .from('gastos')
     .insert({
-      user_id,
-      nota,
-      importe: Number(importe),
-      categoria,
-      desde_atajo: true,
-      fecha: new Date().toISOString(),
+      user_id: USER_ID,
+      ...validado.gasto,
+      source: esAtajo(req) ? 'shortcut' : 'web',
+      ts: Date.now(),
     })
     .select()
     .single()
 
-  if (error) {
-    console.error('Error Supabase:', error)
-    return NextResponse.json({ error: 'Error guardando gasto' }, { status: 500 })
-  }
+  if (error) return NextResponse.json({ ok: false, error: 'Error guardando gasto' }, { status: 500 })
 
   return NextResponse.json({
     ok: true,
     gasto: data,
-    mensaje: `✅ Gasto de ${importe}€ en "${nota}" registrado`,
+    mensaje: `Gasto de ${validado.gasto.importe}€ registrado`,
   })
 }
 
-// GET /api/gastos — listar gastos del mes actual
-export async function GET(req: NextRequest) {
-  const auth = req.headers.get('authorization')
-  const secret = process.env.SHORTCUT_SECRET
-  if (!secret || auth !== `Bearer ${secret}`) {
-    return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-  }
-
-  const { searchParams } = new URL(req.url)
-  const user_id = searchParams.get('user_id')
-  const mes = searchParams.get('mes') // formato: '2026-08'
-
-  if (!user_id) {
-    return NextResponse.json({ error: 'user_id requerido' }, { status: 400 })
-  }
+// DELETE /api/gastos — borra todo. Solo con el secreto: no es un boton de la UI.
+export async function DELETE(req: NextRequest) {
+  if (!esAtajo(req)) return NextResponse.json({ ok: false, error: 'No autorizado' }, { status: 401 })
 
   const db = supabaseAdmin()
-  if (!db) {
-    return NextResponse.json({ error: 'Supabase no está configurado' }, { status: 503 })
-  }
-  let query = db
-    .from('gastos')
-    .select('*')
-    .eq('user_id', user_id)
-    .order('fecha', { ascending: false })
+  if (!db) return NextResponse.json(SIN_DB, { status: 503 })
 
-  if (mes) {
-    const inicio = `${mes}-01`
-    const [anio, m] = mes.split('-').map(Number)
-    const fin = new Date(anio, m, 0).toISOString().split('T')[0]
-    query = query.gte('fecha', inicio).lte('fecha', fin + 'T23:59:59')
-  }
-
-  const { data, error } = await query.limit(100)
-
-  if (error) return NextResponse.json({ error: 'Error cargando gastos' }, { status: 500 })
-
-  return NextResponse.json({ gastos: data })
+  const { error } = await db.from('gastos').delete().eq('user_id', USER_ID)
+  if (error) return NextResponse.json({ ok: false, error: 'Error borrando gastos' }, { status: 500 })
+  return NextResponse.json({ ok: true })
 }

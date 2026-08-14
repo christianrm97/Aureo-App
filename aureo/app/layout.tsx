@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: '#0a0a0f',
+  themeColor: '#6C2BD9',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
@@ -24,7 +24,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es" className={inter.variable}>
-      <body className="bg-aureo-bg text-aureo-text antialiased">
+      <body className="antialiased">
         {children}
       </body>
     </html>
