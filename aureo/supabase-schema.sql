@@ -10,7 +10,7 @@ declare
   t text;
   n bigint;
 begin
-  foreach t in array array['gastos', 'recurrentes', 'cuentas'] loop
+  foreach t in array array['gastos', 'recurrentes', 'cuentas', 'suscripciones', 'recibos', 'deudas'] loop
     if to_regclass('public.' || t) is not null then
       execute format('select count(*) from %I', t) into n;
       if n = 0 then
@@ -68,6 +68,55 @@ create table if not exists cuentas (
 );
 create index if not exists cuentas_user_idx on cuentas (user_id);
 
+-- ============ SUSCRIPCIONES ============
+create table if not exists suscripciones (
+  id uuid primary key default gen_random_uuid(),
+  user_id text not null,
+  plataforma text not null,               -- id del catalogo (lib/catalogo.ts)
+  nombre text not null,
+  plan text not null,
+  cuota numeric(10,2) not null check (cuota > 0),
+  dia int not null default 1 check (dia between 1 and 31),
+  activa boolean not null default true,
+  created_at timestamptz default now()
+);
+create index if not exists suscripciones_user_idx on suscripciones (user_id);
+
+-- ============ RECIBOS DOMICILIADOS ============
+create table if not exists recibos (
+  id uuid primary key default gen_random_uuid(),
+  user_id text not null,
+  tipo text not null,                     -- luz | agua | gas | internet | movil | ibi | ...
+  nombre text not null,
+  companyia text,
+  importe numeric(10,2) not null check (importe > 0),
+  dia int not null default 1 check (dia between 1 and 31),
+  periodicidad text not null default 'mensual',
+  activo boolean not null default true,
+  created_at timestamptz default now()
+);
+create index if not exists recibos_user_idx on recibos (user_id);
+
+-- ============ DEUDA ============
+create table if not exists deudas (
+  id uuid primary key default gen_random_uuid(),
+  user_id text not null,
+  tipo text not null,                     -- prestamo | hipoteca | financiacion | tarjeta | aplazado | familiar
+  nombre text not null,
+  entidad text,
+  pendiente numeric(12,2) not null check (pendiente > 0),
+  cuota numeric(10,2) not null check (cuota > 0),
+  dia int not null default 1 check (dia between 1 and 31),
+  tae numeric(5,2),
+  meses_restantes int,
+  created_at timestamptz default now()
+);
+create index if not exists deudas_user_idx on deudas (user_id);
+
+-- Netflix y Spotify pasan de recurrentes a suscripciones: si vienen del seed
+-- antiguo hay que quitarlos o se cuentan dos veces en el compromiso mensual.
+delete from recurrentes where categoria = 'Suscripcion';
+
 -- ============ RLS ============
 -- Todo el acceso pasa hoy por las rutas /api con la service role key, que
 -- ignora RLS. Con RLS activo y sin policies, la anon key no puede leer nada:
@@ -75,6 +124,10 @@ create index if not exists cuentas_user_idx on cuentas (user_id);
 alter table gastos       enable row level security;
 alter table recurrentes  enable row level security;
 alter table cuentas      enable row level security;
+alter table suscripciones enable row level security;
+alter table recibos      enable row level security;
+alter table deudas       enable row level security;
+
 
 -- Cuando haya Supabase Auth, descomentar y sustituir user_id por auth.uid():
 -- create policy "own_gastos"      on gastos      for all using (auth.uid()::text = user_id);
