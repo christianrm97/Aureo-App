@@ -17,6 +17,7 @@ const base = (): Estado => ({
   suscripciones: [{ cuota: 13.99 }, { cuota: 10.99 }],
   recibos: [{ importe: 65 }, { importe: 35 }],
   deudas: [{ cuota: 120, pendiente: 1200, tipo: 'tarjeta' }],
+  ingresosExtra: [],
   inversionMensual: 80,
 })
 
@@ -29,6 +30,21 @@ assert.equal(r.recibos, 100)
 assert.equal(r.deuda, 120)
 assert.equal(round(r.ahorroMensual), round(1410.67 - 966.9 - 24.98 - 100 - 120 - 80))
 assert.equal(r.deudaTotal, 1200)
+
+// los ingresos extra recurrentes suben el ritmo; los puntuales no
+const conExtra = { ...base(), ingresosExtra: [
+  { importe: 300, tipo: 'recurrente' as const },
+  { importe: 500, tipo: 'puntual' as const },
+] }
+const rExtra = resumen(conExtra)
+assert.equal(rExtra.ingresos, 1410.67 + 300)
+assert.equal(rExtra.ingresosExtra, 300)
+assert.equal(rExtra.ingresosPuntuales, 500)
+assert.equal(round(rExtra.ahorroMensual), round(resumen(base()).ahorroMensual + 300))
+
+// un ingreso extra suficiente da la vuelta al diagnostico
+const salvado = { ...base(), liquido: 100, ingresosExtra: [{ importe: 900, tipo: 'recurrente' as const }] }
+assert.equal(analizar(salvado).severidad, 'ok')
 
 // una suscripcion inactiva no cuenta
 const conPausa = { ...base(), suscripciones: [{ cuota: 13.99 }, { cuota: 10.99, activa: false }] }

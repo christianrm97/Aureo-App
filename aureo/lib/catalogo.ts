@@ -9,6 +9,8 @@ export interface Plataforma {
   id: string
   nombre: string
   icono: string | null
+  /** Dominio para el favicon oficial cuando simple-icons no trae la marca. */
+  dominio: string
   color: string
   categoria: 'video' | 'musica' | 'gaming' | 'software' | 'formacion' | 'deporte' | 'otros'
   planes: { nombre: string; precio: number }[]
@@ -16,81 +18,81 @@ export interface Plataforma {
 
 export const PLATAFORMAS: Plataforma[] = [
   // Video
-  { id: 'netflix', nombre: 'Netflix', icono: 'netflix', color: '#E50914', categoria: 'video',
+  { id: 'netflix', nombre: 'Netflix', icono: 'netflix', color: '#E50914', dominio: 'netflix.com', categoria: 'video',
     planes: [{ nombre: 'Estándar con anuncios', precio: 6.99 }, { nombre: 'Estándar', precio: 13.99 }, { nombre: 'Premium', precio: 19.99 }] },
-  { id: 'disneyplus', nombre: 'Disney+', icono: null, color: '#113CCF', categoria: 'video',
+  { id: 'disneyplus', nombre: 'Disney+', icono: null, color: '#113CCF', dominio: 'disneyplus.com', categoria: 'video',
     planes: [{ nombre: 'Estándar con anuncios', precio: 5.99 }, { nombre: 'Estándar', precio: 9.99 }, { nombre: 'Premium', precio: 13.99 }] },
-  { id: 'primevideo', nombre: 'Prime Video', icono: null, color: '#00A8E1', categoria: 'video',
+  { id: 'primevideo', nombre: 'Prime Video', icono: null, color: '#00A8E1', dominio: 'primevideo.com', categoria: 'video',
     planes: [{ nombre: 'Amazon Prime', precio: 4.99 }, { nombre: 'Anual (prorrateado)', precio: 4.17 }] },
-  { id: 'hbomax', nombre: 'HBO Max', icono: 'hbo', color: '#8A2BE2', categoria: 'video',
+  { id: 'hbomax', nombre: 'HBO Max', icono: 'hbo', color: '#8A2BE2', dominio: 'hbomax.com', categoria: 'video',
     planes: [{ nombre: 'Básico con anuncios', precio: 5.99 }, { nombre: 'Estándar', precio: 9.99 }, { nombre: 'Premium', precio: 13.99 }] },
-  { id: 'appletv', nombre: 'Apple TV+', icono: 'appletv', color: '#000000', categoria: 'video',
+  { id: 'appletv', nombre: 'Apple TV+', icono: 'appletv', color: '#000000', dominio: 'tv.apple.com', categoria: 'video',
     planes: [{ nombre: 'Mensual', precio: 9.99 }] },
-  { id: 'dazn', nombre: 'DAZN', icono: 'dazn', color: '#0BF63C', categoria: 'video',
+  { id: 'dazn', nombre: 'DAZN', icono: 'dazn', color: '#0BF63C', dominio: 'dazn.com', categoria: 'video',
     planes: [{ nombre: 'Total', precio: 34.99 }, { nombre: 'Fútbol', precio: 19.99 }] },
-  { id: 'crunchyroll', nombre: 'Crunchyroll', icono: 'crunchyroll', color: '#F47521', categoria: 'video',
+  { id: 'crunchyroll', nombre: 'Crunchyroll', icono: 'crunchyroll', color: '#F47521', dominio: 'crunchyroll.com', categoria: 'video',
     planes: [{ nombre: 'Fan', precio: 5.99 }, { nombre: 'Mega Fan', precio: 7.99 }] },
-  { id: 'filmin', nombre: 'Filmin', icono: null, color: '#FF4B4B', categoria: 'video',
+  { id: 'filmin', nombre: 'Filmin', icono: null, color: '#FF4B4B', dominio: 'filmin.es', categoria: 'video',
     planes: [{ nombre: 'Mensual', precio: 8.99 }] },
-  { id: 'movistarplus', nombre: 'Movistar Plus+', icono: 'movistar', color: '#019DF4', categoria: 'video',
+  { id: 'movistarplus', nombre: 'Movistar Plus+', icono: 'movistar', color: '#019DF4', dominio: 'movistarplus.es', categoria: 'video',
     planes: [{ nombre: 'Básico', precio: 9.99 }, { nombre: 'Fútbol', precio: 29.99 }] },
 
   // Musica y audio
-  { id: 'spotify', nombre: 'Spotify', icono: 'spotify', color: '#1DB954', categoria: 'musica',
+  { id: 'spotify', nombre: 'Spotify', icono: 'spotify', color: '#1DB954', dominio: 'spotify.com', categoria: 'musica',
     planes: [{ nombre: 'Individual', precio: 10.99 }, { nombre: 'Dúo', precio: 14.99 }, { nombre: 'Familiar', precio: 17.99 }] },
-  { id: 'applemusic', nombre: 'Apple Music', icono: 'applemusic', color: '#FA243C', categoria: 'musica',
+  { id: 'applemusic', nombre: 'Apple Music', icono: 'applemusic', color: '#FA243C', dominio: 'music.apple.com', categoria: 'musica',
     planes: [{ nombre: 'Individual', precio: 10.99 }, { nombre: 'Familiar', precio: 16.99 }] },
-  { id: 'youtubepremium', nombre: 'YouTube Premium', icono: 'youtube', color: '#FF0000', categoria: 'musica',
+  { id: 'youtubepremium', nombre: 'YouTube Premium', icono: 'youtube', color: '#FF0000', dominio: 'youtube.com', categoria: 'musica',
     planes: [{ nombre: 'Individual', precio: 11.99 }, { nombre: 'Familiar', precio: 23.99 }] },
-  { id: 'audible', nombre: 'Audible', icono: 'audible', color: '#F8991C', categoria: 'musica',
+  { id: 'audible', nombre: 'Audible', icono: 'audible', color: '#F8991C', dominio: 'audible.es', categoria: 'musica',
     planes: [{ nombre: 'Premium Plus', precio: 9.99 }] },
 
   // Gaming
-  { id: 'playstationplus', nombre: 'PlayStation Plus', icono: 'playstation', color: '#0070D1', categoria: 'gaming',
+  { id: 'playstationplus', nombre: 'PlayStation Plus', icono: 'playstation', color: '#0070D1', dominio: 'playstation.com', categoria: 'gaming',
     planes: [{ nombre: 'Essential', precio: 6.99 }, { nombre: 'Extra', precio: 10.99 }, { nombre: 'Premium', precio: 13.99 }] },
-  { id: 'xbox', nombre: 'Xbox Game Pass', icono: null, color: '#107C10', categoria: 'gaming',
+  { id: 'xbox', nombre: 'Xbox Game Pass', icono: null, color: '#107C10', dominio: 'xbox.com', categoria: 'gaming',
     planes: [{ nombre: 'Core', precio: 6.99 }, { nombre: 'Ultimate', precio: 14.99 }] },
-  { id: 'nintendo', nombre: 'Nintendo Switch Online', icono: null, color: '#E60012', categoria: 'gaming',
+  { id: 'nintendo', nombre: 'Nintendo Switch Online', icono: null, color: '#E60012', dominio: 'nintendo.es', categoria: 'gaming',
     planes: [{ nombre: 'Individual', precio: 1.66 }, { nombre: 'Expansión', precio: 3.25 }] },
-  { id: 'twitch', nombre: 'Twitch', icono: 'twitch', color: '#9146FF', categoria: 'gaming',
+  { id: 'twitch', nombre: 'Twitch', icono: 'twitch', color: '#9146FF', dominio: 'twitch.tv', categoria: 'gaming',
     planes: [{ nombre: 'Suscripción Tier 1', precio: 4.99 }] },
 
   // Software y productividad
-  { id: 'icloud', nombre: 'iCloud+', icono: 'icloud', color: '#3693F3', categoria: 'software',
+  { id: 'icloud', nombre: 'iCloud+', icono: 'icloud', color: '#3693F3', dominio: 'icloud.com', categoria: 'software',
     planes: [{ nombre: '50 GB', precio: 0.99 }, { nombre: '200 GB', precio: 2.99 }, { nombre: '2 TB', precio: 9.99 }] },
-  { id: 'googleone', nombre: 'Google One', icono: 'google', color: '#4285F4', categoria: 'software',
+  { id: 'googleone', nombre: 'Google One', icono: 'google', color: '#4285F4', dominio: 'one.google.com', categoria: 'software',
     planes: [{ nombre: '100 GB', precio: 1.99 }, { nombre: '200 GB', precio: 2.99 }, { nombre: '2 TB', precio: 9.99 }] },
-  { id: 'microsoft365', nombre: 'Microsoft 365', icono: null, color: '#D83B01', categoria: 'software',
+  { id: 'microsoft365', nombre: 'Microsoft 365', icono: null, color: '#D83B01', dominio: 'microsoft.com', categoria: 'software',
     planes: [{ nombre: 'Personal', precio: 7.00 }, { nombre: 'Familia', precio: 10.00 }] },
-  { id: 'adobe', nombre: 'Adobe Creative Cloud', icono: null, color: '#FF0000', categoria: 'software',
+  { id: 'adobe', nombre: 'Adobe Creative Cloud', icono: null, color: '#FF0000', dominio: 'adobe.com', categoria: 'software',
     planes: [{ nombre: 'Fotografía', precio: 12.09 }, { nombre: 'Todas las apps', precio: 66.53 }] },
-  { id: 'canva', nombre: 'Canva', icono: null, color: '#00C4CC', categoria: 'software',
+  { id: 'canva', nombre: 'Canva', icono: null, color: '#00C4CC', dominio: 'canva.com', categoria: 'software',
     planes: [{ nombre: 'Pro', precio: 11.99 }] },
-  { id: 'notion', nombre: 'Notion', icono: 'notion', color: '#000000', categoria: 'software',
+  { id: 'notion', nombre: 'Notion', icono: 'notion', color: '#000000', dominio: 'notion.so', categoria: 'software',
     planes: [{ nombre: 'Plus', precio: 9.50 }] },
-  { id: 'chatgpt', nombre: 'ChatGPT', icono: null, color: '#10A37F', categoria: 'software',
+  { id: 'chatgpt', nombre: 'ChatGPT', icono: null, color: '#10A37F', dominio: 'chatgpt.com', categoria: 'software',
     planes: [{ nombre: 'Plus', precio: 23.00 }, { nombre: 'Pro', precio: 229.00 }] },
-  { id: 'claude', nombre: 'Claude', icono: 'claude', color: '#D97757', categoria: 'software',
+  { id: 'claude', nombre: 'Claude', icono: 'claude', color: '#D97757', dominio: 'claude.com', categoria: 'software',
     planes: [{ nombre: 'Pro', precio: 18.00 }, { nombre: 'Max', precio: 90.00 }] },
-  { id: 'github', nombre: 'GitHub', icono: 'github', color: '#181717', categoria: 'software',
+  { id: 'github', nombre: 'GitHub', icono: 'github', color: '#181717', dominio: 'github.com', categoria: 'software',
     planes: [{ nombre: 'Pro', precio: 3.67 }, { nombre: 'Copilot', precio: 9.20 }] },
-  { id: 'dropbox', nombre: 'Dropbox', icono: 'dropbox', color: '#0061FF', categoria: 'software',
+  { id: 'dropbox', nombre: 'Dropbox', icono: 'dropbox', color: '#0061FF', dominio: 'dropbox.com', categoria: 'software',
     planes: [{ nombre: 'Plus', precio: 11.99 }] },
 
   // Formacion y deporte
-  { id: 'duolingo', nombre: 'Duolingo', icono: 'duolingo', color: '#58CC02', categoria: 'formacion',
+  { id: 'duolingo', nombre: 'Duolingo', icono: 'duolingo', color: '#58CC02', dominio: 'duolingo.com', categoria: 'formacion',
     planes: [{ nombre: 'Super', precio: 12.99 }] },
-  { id: 'strava', nombre: 'Strava', icono: 'strava', color: '#FC4C02', categoria: 'deporte',
+  { id: 'strava', nombre: 'Strava', icono: 'strava', color: '#FC4C02', dominio: 'strava.com', categoria: 'deporte',
     planes: [{ nombre: 'Premium', precio: 8.99 }] },
-  { id: 'gimnasio', nombre: 'Gimnasio', icono: null, color: '#6C2BD9', categoria: 'deporte',
+  { id: 'gimnasio', nombre: 'Gimnasio', icono: null, color: '#6C2BD9', dominio: '', categoria: 'deporte',
     planes: [{ nombre: 'Cuota mensual', precio: 29.99 }] },
 
   // Comida a domicilio
-  { id: 'glovo', nombre: 'Glovo Prime', icono: 'glovo', color: '#FFC244', categoria: 'otros',
+  { id: 'glovo', nombre: 'Glovo Prime', icono: 'glovo', color: '#FFC244', dominio: 'glovoapp.com', categoria: 'otros',
     planes: [{ nombre: 'Prime', precio: 5.99 }] },
-  { id: 'ubereats', nombre: 'Uber One', icono: 'ubereats', color: '#06C167', categoria: 'otros',
+  { id: 'ubereats', nombre: 'Uber One', icono: 'ubereats', color: '#06C167', dominio: 'ubereats.com', categoria: 'otros',
     planes: [{ nombre: 'Uber One', precio: 5.99 }] },
-  { id: 'otra', nombre: 'Otra plataforma', icono: null, color: '#9A93A8', categoria: 'otros',
+  { id: 'otra', nombre: 'Otra plataforma', icono: null, color: '#9A93A8', dominio: '', categoria: 'otros',
     planes: [{ nombre: 'Cuota mensual', precio: 0 }] },
 ]
 
@@ -140,3 +142,25 @@ export const TIPOS_DEUDA: TipoDeuda[] = [
 export const plataformaDe = (id: string) => PLATAFORMAS.find((p) => p.id === id) ?? PLATAFORMAS[PLATAFORMAS.length - 1]
 export const tipoReciboDe = (id: string) => TIPOS_RECIBO.find((t) => t.id === id) ?? TIPOS_RECIBO[TIPOS_RECIBO.length - 1]
 export const tipoDeudaDe = (id: string) => TIPOS_DEUDA.find((t) => t.id === id) ?? TIPOS_DEUDA[0]
+
+/** Origen de un ingreso ajeno a la nomina. */
+export interface TipoIngreso {
+  id: string
+  nombre: string
+  icono: string
+  color: string
+  bg: string
+}
+
+export const TIPOS_INGRESO: TipoIngreso[] = [
+  { id: 'freelance', nombre: 'Freelance',  icono: 'laptop',    color: '#6C2BD9', bg: '#EFE7FB' },
+  { id: 'servicio',  nombre: 'Servicio',   icono: 'wrench',    color: '#3B82F6', bg: '#DBEAFE' },
+  { id: 'venta',     nombre: 'Venta',      icono: 'tag',       color: '#F59E0B', bg: '#FEF3C7' },
+  { id: 'alquiler',  nombre: 'Alquiler',   icono: 'home',      color: '#14B8A6', bg: '#CCFBF1' },
+  { id: 'bonus',     nombre: 'Bonus',      icono: 'gift',      color: '#EC4899', bg: '#FCE7F3' },
+  { id: 'dividendo', nombre: 'Dividendos', icono: 'linechart', color: '#22C55E', bg: '#DCFCE7' },
+  { id: 'devolucion',nombre: 'Devolución', icono: 'undo',      color: '#8B5CF6', bg: '#EDE4FE' },
+  { id: 'otro',      nombre: 'Otro',       icono: 'sparkles',  color: '#9A93A8', bg: '#ECE7F1' },
+]
+
+export const tipoIngresoDe = (id: string) => TIPOS_INGRESO.find((t) => t.id === id) ?? TIPOS_INGRESO[TIPOS_INGRESO.length - 1]

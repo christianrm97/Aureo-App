@@ -16,6 +16,7 @@ import {
 import AureoRobot from '@/components/AureoRobot'
 import FijosView, { mensualizar } from '@/components/FijosView'
 import DeudaView from '@/components/DeudaView'
+import IngresosView from '@/components/IngresosView'
 import ConsejoAureo, { useConsejoDiario } from '@/components/ConsejoAureo'
 import { fmt, fmt2, api, SectionHeader, PageHeader, Vacio } from '@/components/ui'
 import { plataformaDe, tipoReciboDe } from '@/lib/catalogo'
@@ -56,6 +57,7 @@ export default function App() {
   const [suscripciones, setSuscripciones] = useState([])
   const [recibos, setRecibos] = useState([])
   const [deudas, setDeudas] = useState([])
+  const [ingresos, setIngresos] = useState([])
   const [noticias, setNoticias] = useState([])
   const [precios, setPrecios] = useState(null)
   const [modalOpen, setModalOpen] = useState(false)
@@ -64,16 +66,17 @@ export default function App() {
   const [consejoAbierto, setConsejoAbierto] = useConsejoDiario()
 
   const setters = useMemo(() => ({
-    suscripciones: setSuscripciones, recibos: setRecibos, deudas: setDeudas,
+    suscripciones: setSuscripciones, recibos: setRecibos, deudas: setDeudas, ingresos: setIngresos,
   }), [])
 
   const cargar = useCallback(async () => {
-    const [g, r, s, re, d, p] = await Promise.all([
+    const [g, r, s, re, d, i, p] = await Promise.all([
       api('gastos?limit=100').catch(() => null),
       api('recurrentes').catch(() => null),
       api('suscripciones').catch(() => null),
       api('recibos').catch(() => null),
       api('deudas').catch(() => null),
+      api('ingresos').catch(() => null),
       api('precios').catch(() => null),
     ])
     if (g?.items) setGastos(g.items)
@@ -81,6 +84,7 @@ export default function App() {
     if (s?.items) setSuscripciones(s.items)
     if (re?.items) setRecibos(re.items)
     if (d?.items) setDeudas(d.items)
+    if (i?.items) setIngresos(i.items)
     if (p?.data) setPrecios(p.data)
   }, [])
 
@@ -97,6 +101,15 @@ export default function App() {
   }, [cargar])
 
   const gastadoTotal = useMemo(() => gastos.reduce((s, g) => s + Number(g.importe), 0), [gastos])
+  // Un ingreso puntual ya cobrado esta en la cuenta: suma al saldo, no al ritmo.
+  const cobradoPuntual = useMemo(
+    () => ingresos.filter((i) => i.tipo === 'puntual').reduce((s, i) => s + Number(i.importe), 0),
+    [ingresos],
+  )
+  const nomina = useMemo(
+    () => recurrentes.filter((r) => r.tipo === 'ingreso').reduce((s, r) => s + Math.abs(Number(r.importe)), 0),
+    [recurrentes],
+  )
 
   const cuentas = useMemo(() => {
     const spChange = precios?.sp500?.changePct ?? 0
@@ -108,8 +121,14 @@ export default function App() {
     })
   }, [precios])
 
-  const patrimonio = useMemo(() => cuentas.reduce((s, c) => s + c.saldo, 0) - gastadoTotal, [cuentas, gastadoTotal])
-  const liquido = useMemo(() => cuentas.filter((c) => !c.inversion).reduce((s, c) => s + c.saldo, 0) - gastadoTotal, [cuentas, gastadoTotal])
+  const patrimonio = useMemo(
+    () => cuentas.reduce((s, c) => s + c.saldo, 0) - gastadoTotal + cobradoPuntual,
+    [cuentas, gastadoTotal, cobradoPuntual],
+  )
+  const liquido = useMemo(
+    () => cuentas.filter((c) => !c.inversion).reduce((s, c) => s + c.saldo, 0) - gastadoTotal + cobradoPuntual,
+    [cuentas, gastadoTotal, cobradoPuntual],
+  )
   const progreso = Math.min(100, Math.max(0, (liquido / OBJETIVO) * 100))
 
   // Estado que consume el motor: todo lo que compromete dinero cada mes
@@ -121,8 +140,9 @@ export default function App() {
     suscripciones: suscripciones.map((s) => ({ cuota: Number(s.cuota) })),
     recibos: recibos.map((r) => ({ importe: mensualizar({ ...r, importe: Number(r.importe) }) })),
     deudas: deudas.map((d) => ({ cuota: Number(d.cuota), pendiente: Number(d.pendiente), tipo: d.tipo })),
+    ingresosExtra: ingresos.map((i) => ({ importe: Number(i.importe), tipo: i.tipo })),
     inversionMensual: recurrentes.filter((r) => r.tipo === 'inversion').reduce((s, r) => s + Math.abs(Number(r.importe)), 0),
-  }), [liquido, recurrentes, suscripciones, recibos, deudas])
+  }), [liquido, recurrentes, suscripciones, recibos, deudas, ingresos])
 
   const balance = useMemo(() => resumen(estado), [estado])
   const analisis = useMemo(() => analizar(estado), [estado])
@@ -179,15 +199,15 @@ export default function App() {
           <>
             <HeroCard patrimonio={patrimonio} liquido={liquido} oculto={oculto} spChange={precios?.sp500?.changePct}
               onRobot={() => setConsejoAbierto(true)} humor={analisis.severidad === 'riesgo' ? 'alerta' : 'feliz'} />
-            <ActionsRow onAdd={() => setModalOpen(true)} onFijos={() => setTab('fijos')} onGoal={() => setTab('goal')} onDeuda={() => setTab('deuda')} />
+            <ActionsRow onAdd={() => setModalOpen(true)} onIngresos={() => setTab('ingresos')} onFijos={() => setTab('fijos')} onDeuda={() => setTab('deuda')} />
             <AnalisisAureo analisis={analisis} oculto={oculto} onAbrir={() => setConsejoAbierto(true)} />
             <SpaceObjetivo liquido={liquido} objetivo={OBJETIVO} progreso={progreso} oculto={oculto} analisis={analisis} />
             <SectionHeader title="Cuentas" />
             <CuentasLista cuentas={cuentas} gastadoTotal={gastadoTotal} oculto={oculto} />
-            <SectionHeader title="Compromisos" right="Ver todos" onRight={() => setTab('fijos')} />
+            <SectionHeader title="Tu mes" />
             <ResumenCompromisos balance={balance} oculto={oculto}
-              onFijos={() => setTab('fijos')} onDeuda={() => setTab('deuda')}
-              nSubs={suscripciones.length} nRecibos={recibos.length} nDeudas={deudas.length} />
+              onIngresos={() => setTab('ingresos')} onFijos={() => setTab('fijos')} onDeuda={() => setTab('deuda')}
+              nIngresos={ingresos.length} nSubs={suscripciones.length} nRecibos={recibos.length} nDeudas={deudas.length} />
             <SectionHeader title="Próximas" right="Ver todas" onRight={() => setTab('fijos')} />
             <RecurrentesWidget recurrentes={recurrentes} oculto={oculto} />
             <SectionHeader title="Proyección" right="Ene 2027" />
@@ -202,6 +222,11 @@ export default function App() {
         {tab === 'fijos' && (
           <FijosView suscripciones={suscripciones} recibos={recibos} recurrentes={recurrentes}
             onBack={() => setTab('home')} oculto={oculto} onCrear={crear} onBorrar={borrar} />
+        )}
+
+        {tab === 'ingresos' && (
+          <IngresosView ingresos={ingresos} nomina={nomina} onBack={() => setTab('home')} oculto={oculto}
+            onCrear={crear} onBorrar={borrar} />
         )}
 
         {tab === 'deuda' && (
@@ -270,11 +295,11 @@ function HeroCard({ patrimonio, liquido, oculto, spChange, onRobot, humor }) {
   )
 }
 
-function ActionsRow({ onAdd, onFijos, onGoal, onDeuda }) {
+function ActionsRow({ onAdd, onIngresos, onFijos, onDeuda }) {
   const items = [
-    { label: 'Añadir',   icon: Plus,        onClick: onAdd, primary: true },
-    { label: 'Fijos',    icon: Repeat,      onClick: onFijos },
-    { label: 'Objetivo', icon: Target,      onClick: onGoal },
+    { label: 'Gasto',    icon: Plus,         onClick: onAdd, primary: true },
+    { label: 'Ingreso',  icon: TrendingUp,   onClick: onIngresos },
+    { label: 'Fijos',    icon: Repeat,       onClick: onFijos },
     { label: 'Deuda',    icon: TrendingDown, onClick: onDeuda },
   ]
   return (
@@ -359,8 +384,9 @@ function SpaceObjetivo({ liquido, objetivo, progreso, oculto, analisis }) {
   )
 }
 
-function ResumenCompromisos({ balance, oculto, onFijos, onDeuda, nSubs, nRecibos, nDeudas }) {
+function ResumenCompromisos({ balance, oculto, onIngresos, onFijos, onDeuda, nIngresos, nSubs, nRecibos, nDeudas }) {
   const filas = [
+    { id: 'ingresos', label: 'Ingresos extra', valor: balance.ingresosExtra, n: nIngresos, color: '#22C55E', bg: '#DCFCE7', Icon: TrendingUp, onClick: onIngresos, signo: '+' },
     { id: 'subs',    label: 'Suscripciones', valor: balance.suscripciones, n: nSubs,    color: '#3B82F6', bg: '#DBEAFE', Icon: Repeat,       onClick: onFijos },
     { id: 'recibos', label: 'Recibos',       valor: balance.recibos,       n: nRecibos, color: '#22C55E', bg: '#DCFCE7', Icon: Receipt,      onClick: onFijos },
     { id: 'deuda',   label: 'Deuda',         valor: balance.deuda,         n: nDeudas,  color: '#EF4444', bg: '#FEE2E2', Icon: TrendingDown, onClick: onDeuda },

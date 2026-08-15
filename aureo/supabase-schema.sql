@@ -10,7 +10,7 @@ declare
   t text;
   n bigint;
 begin
-  foreach t in array array['gastos', 'recurrentes', 'cuentas', 'suscripciones', 'recibos', 'deudas'] loop
+  foreach t in array array['gastos', 'recurrentes', 'cuentas', 'suscripciones', 'recibos', 'deudas', 'ingresos'] loop
     if to_regclass('public.' || t) is not null then
       execute format('select count(*) from %I', t) into n;
       if n = 0 then
@@ -118,6 +118,22 @@ create index if not exists deudas_user_idx on deudas (user_id);
 -- guarda los que crees tu, asi que dejarla vacia es el estado correcto.
 truncate table recurrentes;
 
+-- ============ INGRESOS EXTRA ============
+-- Trabajos puntuales, servicios, alquileres... 'recurrente' cambia el ritmo
+-- mensual; 'puntual' solo engorda el patrimonio una vez.
+create table if not exists ingresos (
+  id uuid primary key default gen_random_uuid(),
+  user_id text not null,
+  categoria text not null,                -- freelance | servicio | venta | alquiler | bonus | dividendo | devolucion | otro
+  concepto text not null,
+  importe numeric(12,2) not null check (importe > 0),
+  tipo text not null default 'puntual',   -- 'recurrente' | 'puntual'
+  dia int not null default 1 check (dia between 1 and 31),
+  ts bigint not null,
+  created_at timestamptz default now()
+);
+create index if not exists ingresos_user_idx on ingresos (user_id, ts desc);
+
 -- ============ RLS ============
 -- Todo el acceso pasa hoy por las rutas /api con la service role key, que
 -- ignora RLS. Con RLS activo y sin policies, la anon key no puede leer nada:
@@ -128,6 +144,7 @@ alter table cuentas      enable row level security;
 alter table suscripciones enable row level security;
 alter table recibos      enable row level security;
 alter table deudas       enable row level security;
+alter table ingresos     enable row level security;
 
 
 -- Cuando haya Supabase Auth, descomentar y sustituir user_id por auth.uid():

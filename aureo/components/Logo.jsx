@@ -2,15 +2,19 @@
 
 import { useState } from 'react'
 
+/** "Iberdrola Clientes" -> "iberdrolaclientes", para buscar dominio por marca. */
+export const slugDe = (texto) => String(texto ?? '').toLowerCase().replace(/[^a-z0-9]/g, '')
+
 /**
- * Logo de marca. Las que estan en simple-icons se sirven desde /api/logo;
- * el resto (Disney+, Amazon, Microsoft, Adobe, electricas espanolas) caen a
- * monograma sobre el color corporativo.
+ * Logo de marca. La ruta /api/logo resuelve primero simple-icons y, si la marca
+ * no esta ahi, el favicon oficial del dominio. Si tampoco hay nada, monograma
+ * sobre el color corporativo.
  */
 export default function Logo({ plataforma, size = 44 }) {
   const [falla, setFalla] = useState(false)
-  const { icono, color, nombre } = plataforma
-  const usaImagen = Boolean(icono) && !falla
+  const { icono, id, color, nombre } = plataforma
+  const clave = icono || id
+  const usaImagen = Boolean(clave) && !falla
 
   return (
     <div
@@ -19,11 +23,11 @@ export default function Logo({ plataforma, size = 44 }) {
     >
       {usaImagen ? (
         <img
-          src={`/api/logo/${icono}`}
+          src={`/api/logo/${clave}`}
           alt=""
-          width={size * 0.5}
-          height={size * 0.5}
-          style={{ width: size * 0.5, height: size * 0.5 }}
+          width={size * 0.55}
+          height={size * 0.55}
+          style={{ width: size * 0.55, height: size * 0.55, objectFit: 'contain' }}
           onError={() => setFalla(true)}
         />
       ) : (

@@ -1,7 +1,14 @@
 import type { Config } from 'tailwindcss'
 
 const config: Config = {
-  content: ['./app/**/*.{js,jsx,ts,tsx}', './lib/**/*.{js,jsx,ts,tsx}'],
+  // Sin components/ aqui, Tailwind no genera las clases que solo se usan alli:
+  // el bottom sheet se quedaba sin overflow-y-auto y el pop-up sin z-index ni
+  // centrado, asi que salia el fondo translucido y el mensaje detras.
+  content: [
+    './app/**/*.{js,jsx,ts,tsx}',
+    './components/**/*.{js,jsx,ts,tsx}',
+    './lib/**/*.{js,jsx,ts,tsx}',
+  ],
   theme: {
     extend: {
       colors: {

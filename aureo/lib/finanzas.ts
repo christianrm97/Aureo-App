@@ -7,6 +7,8 @@ export interface Recurrente { importe: number; tipo: 'ingreso' | 'gasto' | 'inve
 export interface Suscripcion { cuota: number; activa?: boolean }
 export interface Recibo { importe: number; activo?: boolean }
 export interface Deuda { cuota: number; pendiente: number; meses_restantes?: number | null; tipo: string }
+/** Ingreso ajeno a la nomina: recurrente suma cada mes, puntual solo una vez. */
+export interface IngresoExtra { importe: number; tipo: 'recurrente' | 'puntual' }
 
 export interface Estado {
   liquido: number
@@ -16,12 +18,17 @@ export interface Estado {
   suscripciones: Suscripcion[]
   recibos: Recibo[]
   deudas: Deuda[]
+  ingresosExtra: IngresoExtra[]
   /** Palancas ajustables: lo que hoy va a inversion y a la cuenta de ahorro. */
   inversionMensual: number
 }
 
 export interface Resumen {
   ingresos: number
+  /** Parte de `ingresos` que no viene de la nomina. */
+  ingresosExtra: number
+  /** Cobrado una sola vez: engorda el patrimonio, no el ritmo mensual. */
+  ingresosPuntuales: number
   gastosFijos: number
   suscripciones: number
   recibos: number
@@ -36,7 +43,10 @@ const suma = (ns: number[]) => ns.reduce((a, b) => a + b, 0)
 const abs = (n: number) => Math.abs(n)
 
 export function resumen(e: Estado): Resumen {
-  const ingresos = suma(e.recurrentes.filter((r) => r.tipo === 'ingreso').map((r) => abs(r.importe)))
+  const nomina = suma(e.recurrentes.filter((r) => r.tipo === 'ingreso').map((r) => abs(r.importe)))
+  const extra = suma(e.ingresosExtra.filter((i) => i.tipo === 'recurrente').map((i) => abs(i.importe)))
+  const puntuales = suma(e.ingresosExtra.filter((i) => i.tipo === 'puntual').map((i) => abs(i.importe)))
+  const ingresos = nomina + extra
   // La inversion se cuenta aparte: sigue siendo patrimonio, no gasto quemado.
   const gastosFijos = suma(e.recurrentes.filter((r) => r.tipo === 'gasto').map((r) => abs(r.importe)))
   const suscripciones = suma(e.suscripciones.filter((s) => s.activa !== false).map((s) => abs(s.cuota)))
@@ -46,6 +56,8 @@ export function resumen(e: Estado): Resumen {
 
   return {
     ingresos,
+    ingresosExtra: extra,
+    ingresosPuntuales: puntuales,
     gastosFijos,
     suscripciones,
     recibos,
@@ -85,7 +97,7 @@ export function proyectar(e: Estado, meses = 19): Punto[] {
 export type Severidad = 'ok' | 'ajuste' | 'riesgo'
 
 export interface Accion {
-  palanca: 'inversion' | 'suscripciones' | 'deuda' | 'ahorro' | 'ninguna'
+  palanca: 'inversion' | 'suscripciones' | 'deuda' | 'ingresos' | 'ahorro' | 'ninguna'
   texto: string
   /** Euros/mes a mover. Positivo = liberar hacia el objetivo. */
   delta: number
@@ -178,9 +190,11 @@ export function analizar(e: Estado): Analisis {
     const resto2 = resto - Math.min(r.suscripciones, resto)
     if (resto2 > 0) {
       acciones.push({
-        palanca: 'ahorro',
+        palanca: 'ingresos',
         delta: Math.round(resto2),
-        texto: `Aun quedan ${eur(resto2)}/mes sin cubrir. O bajas gasto variable o mueves la fecha del objetivo.`,
+        texto: r.ingresosExtra > 0
+          ? `Faltan ${eur(resto2)}/mes. Tus ingresos extra ya aportan ${eur(r.ingresosExtra)}/mes: subirlos a ${eur(r.ingresosExtra + resto2)} cierra el hueco.`
+          : `Faltan ${eur(resto2)}/mes. Un trabajo puntual de ${eur(resto2 * meses)} repartido hasta enero cubre lo que queda.`,
       })
     }
   }
