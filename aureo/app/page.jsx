@@ -11,7 +11,7 @@ import {
   Home, CreditCard, Bell, Repeat, Calendar, Landmark, PiggyBank, Users,
   Banknote, LineChart, Wallet, X, TrendingUp, Sparkles, Eye, EyeOff,
   Trash2, RefreshCw, ArrowUp, ArrowDown, Receipt, TrendingDown, AlertTriangle,
-  Newspaper, Calculator, ShieldCheck, Flag,
+  Newspaper, Calculator, ShieldCheck, Flag, Settings,
 } from 'lucide-react'
 
 import AureoRobot from '@/components/AureoRobot'
@@ -20,9 +20,11 @@ import DeudaView from '@/components/DeudaView'
 import IngresosView from '@/components/IngresosView'
 import ConsejoAureo, { useConsejoDiario } from '@/components/ConsejoAureo'
 import NoticiasView from '@/components/NoticiasView'
+import Bienvenida from '@/components/Bienvenida'
+import Ajustes from '@/components/Ajustes'
 import SimuladorView from '@/components/SimuladorView'
 import { fmt, fmt2, api, SectionHeader, PageHeader, Vacio } from '@/components/ui'
-import { CUENTAS, OBJETIVO, FECHA_OBJETIVO, FONDO_EMERGENCIA, CHECKPOINT } from '@/lib/perfil'
+import { OBJETIVO as OBJETIVO_DEF, FECHA_OBJETIVO, FONDO_EMERGENCIA as FONDO_DEF, CHECKPOINT } from '@/lib/perfil'
 import { resumen, analizar, proyectar, impactoGasto } from '@/lib/finanzas'
 
 const ICONS = {
@@ -48,6 +50,10 @@ export default function App() {
   const [recibos, setRecibos] = useState([])
   const [deudas, setDeudas] = useState([])
   const [ingresos, setIngresos] = useState([])
+  const [cuentasDB, setCuentasDB] = useState([])
+  const [perfil, setPerfil] = useState(null)
+  const [usuario, setUsuario] = useState(null)
+  const [cargado, setCargado] = useState(false)
   const [noticias, setNoticias] = useState([])
   const [precios, setPrecios] = useState(null)
   const [modalOpen, setModalOpen] = useState(false)
@@ -60,7 +66,7 @@ export default function App() {
   }), [])
 
   const cargar = useCallback(async () => {
-    const [g, r, s, re, d, i, p] = await Promise.all([
+    const [g, r, s, re, d, i, p, c, pf] = await Promise.all([
       api('gastos?limit=100').catch(() => null),
       api('recurrentes').catch(() => null),
       api('suscripciones').catch(() => null),
@@ -68,6 +74,8 @@ export default function App() {
       api('deudas').catch(() => null),
       api('ingresos').catch(() => null),
       api('precios').catch(() => null),
+      api('cuentas').catch(() => null),
+      api('perfil').catch(() => null),
     ])
     if (g?.items) setGastos(g.items)
     if (r?.items) setRecurrentes(r.items)
@@ -76,6 +84,10 @@ export default function App() {
     if (d?.items) setDeudas(d.items)
     if (i?.items) setIngresos(i.items)
     if (p?.data) setPrecios(p.data)
+    if (c?.items) setCuentasDB(c.items)
+    if (pf?.perfil) setPerfil(pf.perfil)
+    if (pf?.usuario) setUsuario(pf.usuario)
+    setCargado(true)
   }, [])
 
   useEffect(() => { cargar() }, [cargar])
@@ -103,13 +115,15 @@ export default function App() {
 
   const cuentas = useMemo(() => {
     const spChange = precios?.sp500?.changePct ?? 0
-    return CUENTAS.map((c) => {
-      if (c.id === 'myinvestor' && precios?.sp500?.price) {
-        return { ...c, saldo: c.saldo + c.saldo * (spChange / 100), changePct: spChange, live: true }
+    return cuentasDB.map((c) => {
+      const saldo = Number(c.saldo)
+      // A una cuenta de inversion se le aplica la variacion del mercado del dia
+      if (c.inversion && precios?.sp500?.price) {
+        return { ...c, saldo: saldo + saldo * (spChange / 100), changePct: spChange, live: true }
       }
-      return c
+      return { ...c, saldo }
     })
-  }, [precios])
+  }, [precios, cuentasDB])
 
   const patrimonio = useMemo(
     () => cuentas.reduce((s, c) => s + c.saldo, 0) - gastadoTotal + cobradoPuntual,
@@ -119,6 +133,8 @@ export default function App() {
     () => cuentas.filter((c) => !c.inversion).reduce((s, c) => s + c.saldo, 0) - gastadoTotal + cobradoPuntual,
     [cuentas, gastadoTotal, cobradoPuntual],
   )
+  const OBJETIVO = Number(perfil?.objetivo ?? OBJETIVO_DEF)
+  const FONDO_EMERGENCIA = Number(perfil?.fondo_emergencia ?? FONDO_DEF)
   const progreso = Math.min(100, Math.max(0, (liquido / OBJETIVO) * 100))
 
   // Estado que consume el motor: todo lo que compromete dinero cada mes
@@ -161,6 +177,23 @@ export default function App() {
     setGastos((prev) => prev.filter((x) => x.id !== id))
   }
 
+  // Mientras no sepamos si tiene cuentas no se pinta nada: un patrimonio de
+  // 0 EUR durante medio segundo asusta mas que un espacio en blanco.
+  if (!cargado) {
+    return (
+      <div className="min-h-screen grid place-items-center" style={{ background: 'var(--aureo-bg)' }}>
+        <div className="flex flex-col items-center gap-3">
+          <AureoRobot size={72} variant="lavanda" vivo />
+          <span className="text-[13px]" style={{ color: 'var(--aureo-text-mute)' }}>Cargando tu dinero…</span>
+        </div>
+      </div>
+    )
+  }
+
+  if (!cuentasDB.length) {
+    return <Bienvenida nombre={usuario?.nombre} onListo={cargar} />
+  }
+
   return (
     <div className="min-h-screen pb-28" style={{ background: 'var(--aureo-bg)' }}>
       <div className="max-w-md mx-auto px-4 pt-3">
@@ -170,7 +203,9 @@ export default function App() {
             <AureoRobot size={44} variant="lavanda" vivo humor={analisis.severidad === 'ok' ? 'feliz' : 'pensando'} />
             <div className="flex flex-col -mt-0.5">
               <span className="text-[26px] font-bold leading-none tracking-tight" style={{ color: 'var(--aureo-purple)' }}>Aureo</span>
-              <span className="text-[12px] leading-tight" style={{ color: 'var(--aureo-text-mute)' }}>Hola, Christian</span>
+              <span className="text-[12px] leading-tight" style={{ color: 'var(--aureo-text-mute)' }}>
+                Hola, {(usuario?.nombre ?? 'que tal').split(' ')[0]}
+              </span>
             </div>
           </div>
           <div className="flex items-center gap-1.5">
@@ -182,6 +217,13 @@ export default function App() {
               className="w-9 h-9 rounded-full grid place-items-center relative" style={{ background: '#fff', border: '1px solid var(--aureo-border)' }}>
               <Bell className="w-4 h-4" />
               <span className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full" style={{ background: 'var(--aureo-purple)' }} />
+            </button>
+            <button onClick={() => setTab('ajustes')} aria-label="Ajustes"
+              className="w-9 h-9 rounded-full grid place-items-center overflow-hidden"
+              style={{ background: '#fff', border: '1px solid var(--aureo-border)' }}>
+              {usuario?.avatar
+                ? <img src={usuario.avatar} alt="" width={36} height={36} referrerPolicy="no-referrer" />
+                : <Settings className="w-4 h-4" />}
             </button>
           </div>
         </div>
@@ -219,6 +261,12 @@ export default function App() {
         )}
 
         {tab === 'noticias' && <NoticiasView onBack={() => setTab('home')} />}
+
+        {tab === 'ajustes' && (
+          <Ajustes usuario={usuario} perfil={perfil} cuentas={cuentasDB}
+            onBack={() => setTab('home')}
+            onCambio={(p) => { if (p && p.id) setPerfil(p); cargar() }} />
+        )}
 
         {tab === 'simulador' && (
           <SimuladorView onBack={() => setTab('home')}
