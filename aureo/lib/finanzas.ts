@@ -21,6 +21,11 @@ export interface Estado {
   ingresosExtra: IngresoExtra[]
   /** Palancas ajustables: lo que hoy va a inversion y a la cuenta de ahorro. */
   inversionMensual: number
+  /**
+   * Colchon intocable. No se resta del patrimonio: se marca como bloqueado
+   * para que `disponible` no lo cuente como dinero gastable.
+   */
+  fondoEmergencia?: number
 }
 
 export interface Resumen {
@@ -37,6 +42,10 @@ export interface Resumen {
   /** Lo que queda cada mes para el objetivo. Puede ser negativo. */
   ahorroMensual: number
   deudaTotal: number
+  /** Parte del liquido que ya cubre el fondo de emergencia. */
+  bloqueado: number
+  /** Liquido que puedes tocar sin romper el colchon. */
+  disponible: number
 }
 
 const suma = (ns: number[]) => ns.reduce((a, b) => a + b, 0)
@@ -53,6 +62,8 @@ export function resumen(e: Estado): Resumen {
   const recibos = suma(e.recibos.filter((r) => r.activo !== false).map((r) => abs(r.importe)))
   const deuda = suma(e.deudas.map((d) => abs(d.cuota)))
   const inversion = abs(e.inversionMensual)
+  // El colchon se llena antes que nada: lo que hay hasta el tope esta bloqueado.
+  const bloqueado = Math.min(Math.max(0, e.liquido), abs(e.fondoEmergencia ?? 0))
 
   return {
     ingresos,
@@ -65,6 +76,8 @@ export function resumen(e: Estado): Resumen {
     inversion,
     ahorroMensual: ingresos - gastosFijos - suscripciones - recibos - deuda - inversion,
     deudaTotal: suma(e.deudas.map((d) => abs(d.pendiente))),
+    bloqueado,
+    disponible: Math.round((e.liquido - bloqueado) * 100) / 100,
   }
 }
 

@@ -11,6 +11,7 @@ import {
   Home, CreditCard, Bell, Repeat, Calendar, Landmark, PiggyBank, Users,
   Banknote, LineChart, Wallet, X, TrendingUp, Sparkles, Eye, EyeOff,
   Trash2, RefreshCw, ArrowUp, ArrowDown, Receipt, TrendingDown, AlertTriangle,
+  Newspaper, Calculator, ShieldCheck, Flag,
 } from 'lucide-react'
 
 import AureoRobot from '@/components/AureoRobot'
@@ -18,27 +19,16 @@ import FijosView, { mensualizar } from '@/components/FijosView'
 import DeudaView from '@/components/DeudaView'
 import IngresosView from '@/components/IngresosView'
 import ConsejoAureo, { useConsejoDiario } from '@/components/ConsejoAureo'
+import NoticiasView from '@/components/NoticiasView'
+import SimuladorView from '@/components/SimuladorView'
 import { fmt, fmt2, api, SectionHeader, PageHeader, Vacio } from '@/components/ui'
-import { plataformaDe, tipoReciboDe } from '@/lib/catalogo'
+import { CUENTAS, OBJETIVO, FECHA_OBJETIVO, FONDO_EMERGENCIA, CHECKPOINT } from '@/lib/perfil'
 import { resumen, analizar, proyectar, impactoGasto } from '@/lib/finanzas'
-
-// -------------- DATOS BASE --------------
-const CUENTAS_BASE = [
-  { id: 'openbank',   nombre: 'OpenBank',       subtitulo: 'Cuenta remunerada 2,47%', saldo: 1539.00, icon: 'landmark',  color: '#6C2BD9', bg: '#EFE7FB', hub: true },
-  { id: 'santander',  nombre: 'Santander',      subtitulo: 'Cuenta principal',        saldo: 200.00,  icon: 'piggybank', color: '#EF4444', bg: '#FEE2E2' },
-  { id: 'pareja',     nombre: 'Cuenta pareja',  subtitulo: 'Santander conjunta',      saldo: 150.00,  icon: 'users',     color: '#EC4899', bg: '#FCE7F3' },
-  { id: 'bleap',      nombre: 'Bleap',          subtitulo: 'Gasto diario',            saldo: 106.71,  icon: 'creditcard', color: '#8B5CF6', bg: '#EDE4FE' },
-  { id: 'cajamar',    nombre: 'Cajamar',        subtitulo: 'Reserva',                 saldo: 100.00,  icon: 'banknote',  color: '#F59E0B', bg: '#FEF3C7' },
-  { id: 'myinvestor', nombre: 'MyInvestor',     subtitulo: 'S&P 500 — Inversión',     saldo: 136.00,  icon: 'linechart', color: '#14B8A6', bg: '#CCFBF1', inversion: true },
-]
 
 const ICONS = {
   landmark: Landmark, piggybank: PiggyBank, users: Users, creditcard: CreditCard,
   banknote: Banknote, linechart: LineChart, sparkles: Sparkles,
 }
-
-const OBJETIVO = 3663
-const FECHA_OBJETIVO = new Date(2027, 0, 1)
 
 const CATEGORIAS = [
   { id: 'Bleap',         label: 'Bleap',         color: '#8B5CF6', bg: '#EDE4FE' },
@@ -113,7 +103,7 @@ export default function App() {
 
   const cuentas = useMemo(() => {
     const spChange = precios?.sp500?.changePct ?? 0
-    return CUENTAS_BASE.map((c) => {
+    return CUENTAS.map((c) => {
       if (c.id === 'myinvestor' && precios?.sp500?.price) {
         return { ...c, saldo: c.saldo + c.saldo * (spChange / 100), changePct: spChange, live: true }
       }
@@ -142,6 +132,7 @@ export default function App() {
     deudas: deudas.map((d) => ({ cuota: Number(d.cuota), pendiente: Number(d.pendiente), tipo: d.tipo })),
     ingresosExtra: ingresos.map((i) => ({ importe: Number(i.importe), tipo: i.tipo })),
     inversionMensual: recurrentes.filter((r) => r.tipo === 'inversion').reduce((s, r) => s + Math.abs(Number(r.importe)), 0),
+    fondoEmergencia: FONDO_EMERGENCIA,
   }), [liquido, recurrentes, suscripciones, recibos, deudas, ingresos])
 
   const balance = useMemo(() => resumen(estado), [estado])
@@ -199,9 +190,12 @@ export default function App() {
           <>
             <HeroCard patrimonio={patrimonio} liquido={liquido} oculto={oculto} spChange={precios?.sp500?.changePct}
               onRobot={() => setConsejoAbierto(true)} humor={analisis.severidad === 'riesgo' ? 'alerta' : 'feliz'} />
-            <ActionsRow onAdd={() => setModalOpen(true)} onIngresos={() => setTab('ingresos')} onFijos={() => setTab('fijos')} onDeuda={() => setTab('deuda')} />
+            <ActionsRow onAdd={() => setModalOpen(true)} onIngresos={() => setTab('ingresos')}
+              onFijos={() => setTab('fijos')} onSimulador={() => setTab('simulador')} />
             <AnalisisAureo analisis={analisis} oculto={oculto} onAbrir={() => setConsejoAbierto(true)} />
             <SpaceObjetivo liquido={liquido} objetivo={OBJETIVO} progreso={progreso} oculto={oculto} analisis={analisis} />
+            <FondoYCheckpoint balance={balance} ingresosExtra={balance.ingresosExtra} oculto={oculto}
+              onIngresos={() => setTab('ingresos')} />
             <SectionHeader title="Cuentas" />
             <CuentasLista cuentas={cuentas} gastadoTotal={gastadoTotal} oculto={oculto} />
             <SectionHeader title="Tu mes" />
@@ -222,6 +216,15 @@ export default function App() {
         {tab === 'fijos' && (
           <FijosView suscripciones={suscripciones} recibos={recibos} recurrentes={recurrentes}
             onBack={() => setTab('home')} oculto={oculto} onCrear={crear} onBorrar={borrar} />
+        )}
+
+        {tab === 'noticias' && <NoticiasView onBack={() => setTab('home')} />}
+
+        {tab === 'simulador' && (
+          <SimuladorView onBack={() => setTab('home')}
+            margenActual={balance.ahorroMensual}
+            cuotasActuales={balance.deuda}
+            ingresos={balance.ingresos} />
         )}
 
         {tab === 'ingresos' && (
@@ -295,12 +298,12 @@ function HeroCard({ patrimonio, liquido, oculto, spChange, onRobot, humor }) {
   )
 }
 
-function ActionsRow({ onAdd, onIngresos, onFijos, onDeuda }) {
+function ActionsRow({ onAdd, onIngresos, onFijos, onSimulador }) {
   const items = [
-    { label: 'Gasto',    icon: Plus,         onClick: onAdd, primary: true },
-    { label: 'Ingreso',  icon: TrendingUp,   onClick: onIngresos },
-    { label: 'Fijos',    icon: Repeat,       onClick: onFijos },
-    { label: 'Deuda',    icon: TrendingDown, onClick: onDeuda },
+    { label: 'Gasto',      icon: Plus,       onClick: onAdd, primary: true },
+    { label: 'Ingreso',    icon: TrendingUp, onClick: onIngresos },
+    { label: 'Fijos',      icon: Repeat,     onClick: onFijos },
+    { label: 'Simulador',  icon: Calculator, onClick: onSimulador },
   ]
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }} className="grid grid-cols-4 gap-3 mt-5">
@@ -350,6 +353,63 @@ function AnalisisAureo({ analisis, oculto, onAbrir }) {
 }
 
 function SectionHeaderLocal() { return null }
+
+/**
+ * Las dos reglas del plan de septiembre: el colchon de 1.500 EUR que no se
+ * toca, y el checkpoint de marzo 2027 (un proyecto dando >= 200 EUR/mes).
+ */
+function FondoYCheckpoint({ balance, ingresosExtra, oculto, onIngresos }) {
+  const cubierto = balance.bloqueado >= FONDO_EMERGENCIA
+  const pctFondo = Math.min(100, (balance.bloqueado / FONDO_EMERGENCIA) * 100)
+
+  const hoy = new Date()
+  const mesesAlCheckpoint = Math.max(
+    0,
+    (CHECKPOINT.fecha.getFullYear() - hoy.getFullYear()) * 12 + (CHECKPOINT.fecha.getMonth() - hoy.getMonth()),
+  )
+  const pctCheck = Math.min(100, (ingresosExtra / CHECKPOINT.ingresoExtraObjetivo) * 100)
+
+  return (
+    <div className="grid grid-cols-2 gap-3 mt-3">
+      <div className="aureo-card p-4">
+        <div className="w-9 h-9 rounded-full grid place-items-center mb-2"
+          style={{ background: cubierto ? '#DCFCE7' : 'var(--aureo-purple-soft)' }}>
+          <ShieldCheck className="w-4 h-4" style={{ color: cubierto ? '#22C55E' : 'var(--aureo-purple)' }} />
+        </div>
+        <div className="text-[13px] font-semibold leading-tight">Fondo de emergencia</div>
+        <div className="tabular text-[17px] font-semibold mt-1">
+          {oculto ? '••• €' : fmt(balance.bloqueado)}
+          <span className="text-[12px] font-normal" style={{ color: 'var(--aureo-text-mute)' }}> / {fmt(FONDO_EMERGENCIA)}</span>
+        </div>
+        <div className="h-1.5 rounded-full overflow-hidden mt-2" style={{ background: '#F0EBF6' }}>
+          <motion.div initial={{ width: 0 }} animate={{ width: pctFondo + '%' }} transition={{ duration: 0.8 }}
+            className="h-full rounded-full" style={{ background: cubierto ? '#22C55E' : 'linear-gradient(90deg,#6C2BD9,#8B5CF6)' }} />
+        </div>
+        <div className="text-[11px] mt-1.5" style={{ color: 'var(--aureo-text-mute)' }}>
+          {cubierto ? 'Intocable: solo coche, médico u ordenador' : 'Te faltan ' + fmt(FONDO_EMERGENCIA - balance.bloqueado)}
+        </div>
+      </div>
+
+      <button onClick={onIngresos} className="aureo-card p-4 text-left">
+        <div className="w-9 h-9 rounded-full grid place-items-center mb-2" style={{ background: '#FEF3C7' }}>
+          <Flag className="w-4 h-4" style={{ color: '#F59E0B' }} />
+        </div>
+        <div className="text-[13px] font-semibold leading-tight">Checkpoint marzo 2027</div>
+        <div className="tabular text-[17px] font-semibold mt-1">
+          {oculto ? '••• €' : fmt(ingresosExtra)}
+          <span className="text-[12px] font-normal" style={{ color: 'var(--aureo-text-mute)' }}> / {fmt(CHECKPOINT.ingresoExtraObjetivo)}</span>
+        </div>
+        <div className="h-1.5 rounded-full overflow-hidden mt-2" style={{ background: '#F0EBF6' }}>
+          <motion.div initial={{ width: 0 }} animate={{ width: pctCheck + '%' }} transition={{ duration: 0.8 }}
+            className="h-full rounded-full" style={{ background: pctCheck >= 100 ? '#22C55E' : '#F59E0B' }} />
+        </div>
+        <div className="text-[11px] mt-1.5" style={{ color: 'var(--aureo-text-mute)' }}>
+          {mesesAlCheckpoint} meses · un proyecto dando 200 €/mes
+        </div>
+      </button>
+    </div>
+  )
+}
 
 function SpaceObjetivo({ liquido, objetivo, progreso, oculto, analisis }) {
   const falta = Math.max(0, objetivo - liquido)
@@ -715,9 +775,9 @@ function GoalView({ liquido, objetivo, progreso, proyeccion, analisis, balance, 
 function BottomNav({ onAdd, tab, setTab }) {
   const items = [
     { id: 'home',     label: 'Inicio',   icon: Home },
-    { id: 'fijos',    label: 'Fijos',    icon: Repeat },
-    { id: 'add',      label: '',         icon: Plus, primary: true, onClick: onAdd },
     { id: 'deuda',    label: 'Deuda',    icon: TrendingDown },
+    { id: 'add',      label: '',         icon: Plus, primary: true, onClick: onAdd },
+    { id: 'noticias', label: 'Noticias', icon: Newspaper },
     { id: 'goal',     label: 'Meta',     icon: Target },
   ]
   return (

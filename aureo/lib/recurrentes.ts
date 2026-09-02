@@ -1,10 +1,12 @@
 /**
- * Recurrentes fijos de Christian: nomina, transferencias y prestamos. Sirven de
- * seed en Supabase y de contenido por defecto mientras no haya base de datos.
+ * Movimientos fijos del mes. Sirven de contenido por defecto mientras la tabla
+ * `recurrentes` este vacia; en cuanto crees uno desde la app, manda la tabla.
  *
- * Netflix y Spotify vivian aqui y se movieron a la seccion Suscripciones, que
- * lleva plataforma, plan y logo. Si tu tabla los tiene de un seed anterior:
- *   delete from recurrentes where categoria = 'Suscripcion';
+ * Fuente: estrategia financiera de septiembre 2026.
+ * - La nomina llega entre el 1 y el 5.
+ * - Prestamo padres y cuotas de deuda caen el 26.
+ * - El IRPF aplazado y Sequra NO estan aqui: son deuda con saldo vivo y viven
+ *   en la seccion Deuda, para no contarlos dos veces.
  */
 export interface Recurrente {
   id: string
@@ -15,13 +17,14 @@ export interface Recurrente {
   categoria: string
   icono: string
   desde?: string
+  nota?: string
 }
 
 export const RECURRENTES_BASE: Recurrente[] = [
-  { id: 'bleap',      nombre: 'Transf. Bleap',   importe: -90,     tipo: 'gasto',     dia: 1,  categoria: 'Bleap',         icono: 'creditcard' },
-  { id: 'pareja',     nombre: 'C. Pareja',       importe: -150,    tipo: 'gasto',     dia: 1,  categoria: 'Cuenta Pareja', icono: 'users' },
-  { id: 'myinvestor', nombre: 'MyInvestor S&P',  importe: -80,     tipo: 'inversion', dia: 1,  categoria: 'Recibo',        icono: 'linechart', desde: '2025-09-01' },
-  { id: 'irpf',       nombre: 'IRPF',            importe: -280.90, tipo: 'gasto',     dia: 20, categoria: 'Recibo',        icono: 'landmark',  desde: '2025-09-01' },
-  { id: 'prestamo',   nombre: 'Préstamo padres', importe: -686,    tipo: 'gasto',     dia: 26, categoria: 'Recibo',        icono: 'banknote' },
-  { id: 'nomina',     nombre: 'Nómina PwC',      importe: 1410.67, tipo: 'ingreso',   dia: 28, categoria: 'Recibo',        icono: 'landmark' },
+  { id: 'nomina',   nombre: 'Nómina PwC',      importe: 1410, tipo: 'ingreso', dia: 1,  categoria: 'Recibo', icono: 'landmark' },
+  { id: 'bleap',    nombre: 'Transf. Bleap',   importe: -90,  tipo: 'gasto',   dia: 1,  categoria: 'Bleap',  icono: 'creditcard',
+    nota: 'Presupuesto objetivo de gasto diario' },
+  { id: 'recibos',  nombre: 'Recibos (DIGI, agua, Simyo)', importe: -60, tipo: 'gasto', dia: 5, categoria: 'Recibo', icono: 'sparkles',
+    nota: 'Estimado: tu plan dice ~150 €/mes entre Bleap y recibos. Sustitúyelo por los importes reales en Fijos' },
+  { id: 'prestamo', nombre: 'Préstamo padres', importe: -687, tipo: 'gasto',   dia: 26, categoria: 'Recibo', icono: 'banknote' },
 ]

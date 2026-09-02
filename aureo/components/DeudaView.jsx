@@ -2,11 +2,15 @@
 
 import { useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Trash2, CreditCard, Banknote, Home, Calendar, Users, TrendingDown } from 'lucide-react'
+import { Plus, Trash2, CreditCard, Banknote, Home, Calendar, Users, TrendingDown, Car, BookOpen, RotateCw, Wallet, Landmark, Calculator } from 'lucide-react'
 import { TIPOS_DEUDA, tipoDeudaDe } from '@/lib/catalogo'
+import { cuotaFrancesa } from '@/lib/simulador'
 import { fmt, fmt2, PageHeader, Sheet, Campo, Boton, Vacio } from './ui'
 
-const ICONOS = { creditcard: CreditCard, banknote: Banknote, home: Home, calendar: Calendar, users: Users }
+const ICONOS = {
+  creditcard: CreditCard, banknote: Banknote, home: Home, calendar: Calendar, users: Users,
+  car: Car, book: BookOpen, rotate: RotateCw, wallet: Wallet, landmark: Landmark,
+}
 
 export default function DeudaView({ deudas, onBack, oculto, onCrear, onBorrar }) {
   const [abierto, setAbierto] = useState(false)
@@ -118,13 +122,22 @@ function AltaDeuda({ onClose, onCrear }) {
   const [cuota, setCuota] = useState('')
   const [dia, setDia] = useState('1')
   const [tae, setTae] = useState('')
+  const [meses, setMeses] = useState('')
   const [guardando, setGuardando] = useState(false)
   const t = tipoDeudaDe(tipo)
+
+  // Con capital, tipo y plazo la cuota no se pregunta: se calcula.
+  const cuotaCalculada = useMemo(() => {
+    const capital = parseFloat(String(pendiente).replace(',', '.'))
+    const plazo = parseInt(meses, 10)
+    if (!capital || !plazo || plazo < 1) return 0
+    return cuotaFrancesa(capital, parseFloat(String(tae).replace(',', '.')) || 0, plazo)
+  }, [pendiente, tae, meses])
 
   const enviar = async (e) => {
     e.preventDefault()
     const saldo = parseFloat(String(pendiente).replace(',', '.'))
-    const mensual = parseFloat(String(cuota).replace(',', '.'))
+    const mensual = cuotaCalculada || parseFloat(String(cuota).replace(',', '.'))
     if (!saldo || !mensual || saldo <= 0 || mensual <= 0 || guardando) return
     setGuardando(true)
     await onCrear('deudas', {
@@ -135,6 +148,7 @@ function AltaDeuda({ onClose, onCrear }) {
       cuota: mensual,
       dia: Number(dia) || 1,
       tae: tae ? parseFloat(String(tae).replace(',', '.')) : null,
+      meses: meses ? parseInt(meses, 10) : null,
     })
     setGuardando(false)
     onClose()
@@ -144,7 +158,7 @@ function AltaDeuda({ onClose, onCrear }) {
     <Sheet title="Nueva deuda" onClose={onClose} onSubmit={enviar}>
       <div className="mb-5">
         <span className="text-[11px] uppercase tracking-wider block mb-2.5" style={{ color: 'var(--aureo-text-mute)' }}>Tipo</span>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-3 gap-2 max-h-56 overflow-y-auto no-scrollbar">
           {TIPOS_DEUDA.map((x) => {
             const Icon = ICONOS[x.icono] ?? Banknote
             const activo = x.id === tipo
@@ -179,15 +193,31 @@ function AltaDeuda({ onClose, onCrear }) {
       </Campo>
 
       <div className="grid grid-cols-2 gap-4">
-        <Campo label="Cuota/mes">
-          <input inputMode="decimal" value={cuota} onChange={(e) => setCuota(e.target.value)} placeholder="0,00"
-            className="w-full bg-transparent outline-none tabular text-[18px] font-semibold" />
-        </Campo>
-        <Campo label="TAE % (opcional)">
+        <Campo label="TIN / TAE %">
           <input inputMode="decimal" value={tae} onChange={(e) => setTae(e.target.value)} placeholder="0,00"
             className="w-full bg-transparent outline-none tabular text-[18px] font-semibold" />
         </Campo>
+        <Campo label="Plazo (meses)">
+          <input inputMode="numeric" value={meses} onChange={(e) => setMeses(e.target.value)} placeholder="24"
+            className="w-full bg-transparent outline-none tabular text-[18px] font-semibold" />
+        </Campo>
       </div>
+
+      <Campo label={cuotaCalculada ? 'Cuota mensual (calculada)' : 'Cuota mensual'}>
+        <div className="flex items-baseline gap-1">
+          <span className="text-[24px] font-semibold" style={{ color: 'var(--aureo-text-mute)' }}>€</span>
+          <input inputMode="decimal" value={cuotaCalculada ? cuotaCalculada.toFixed(2).replace('.', ',') : cuota}
+            onChange={(e) => setCuota(e.target.value)} placeholder="0,00" readOnly={Boolean(cuotaCalculada)}
+            className="flex-1 min-w-0 bg-transparent outline-none tabular text-[24px] font-semibold" />
+        </div>
+      </Campo>
+      {cuotaCalculada > 0 && (
+        <div className="flex items-start gap-2 -mt-2 mb-5 text-[12px]" style={{ color: 'var(--aureo-text-dim)' }}>
+          <Calculator className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" style={{ color: 'var(--aureo-purple)' }} />
+          Sistema francés sobre {fmt2(Number(String(pendiente).replace(',', '.')) || 0)} a {meses} meses.
+          Borra el plazo si prefieres escribir la cuota a mano.
+        </div>
+      )}
 
       <Campo label="Día de cargo">
         <input inputMode="numeric" value={dia} onChange={(e) => setDia(e.target.value)}

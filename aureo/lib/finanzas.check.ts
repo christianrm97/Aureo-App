@@ -50,6 +50,15 @@ assert.equal(analizar(salvado).severidad, 'ok')
 const conPausa = { ...base(), suscripciones: [{ cuota: 13.99 }, { cuota: 10.99, activa: false }] }
 assert.equal(round(resumen(conPausa).suscripciones), 13.99)
 
+// fondo de emergencia: bloquea liquido hasta el tope, nunca mas
+const conFondo = { ...base(), liquido: 2000, fondoEmergencia: 1500 }
+assert.equal(resumen(conFondo).bloqueado, 1500)
+assert.equal(resumen(conFondo).disponible, 500)
+const cortito = { ...base(), liquido: 900, fondoEmergencia: 1500 }
+assert.equal(resumen(cortito).bloqueado, 900, 'no puede bloquear mas de lo que hay')
+assert.equal(resumen(cortito).disponible, 0)
+assert.equal(resumen(base()).bloqueado, 0, 'sin fondo declarado no bloquea nada')
+
 // mesesHasta
 assert.equal(mesesHasta(new Date(2026, 0, 1), new Date(2027, 0, 1)), 12)
 assert.equal(mesesHasta(new Date(2026, 7, 1), new Date(2026, 7, 28)), 0)

@@ -131,12 +131,17 @@ export interface TipoDeuda {
 }
 
 export const TIPOS_DEUDA: TipoDeuda[] = [
-  { id: 'prestamo',    nombre: 'Préstamo personal', icono: 'banknote',   color: '#6C2BD9', bg: '#EFE7FB', revolving: false },
-  { id: 'hipoteca',    nombre: 'Hipoteca',          icono: 'home',       color: '#3B82F6', bg: '#DBEAFE', revolving: false },
-  { id: 'financiacion',nombre: 'Financiación',      icono: 'creditcard', color: '#F59E0B', bg: '#FEF3C7', revolving: false },
-  { id: 'tarjeta',     nombre: 'Tarjeta de crédito',icono: 'creditcard', color: '#EF4444', bg: '#FEE2E2', revolving: true },
-  { id: 'aplazado',    nombre: 'Pago aplazado',     icono: 'calendar',   color: '#EC4899', bg: '#FCE7F3', revolving: false },
-  { id: 'familiar',    nombre: 'Préstamo familiar', icono: 'users',      color: '#14B8A6', bg: '#CCFBF1', revolving: false },
+  { id: 'prestamo',     nombre: 'Préstamo personal',  icono: 'banknote',   color: '#6C2BD9', bg: '#EFE7FB', revolving: false },
+  { id: 'hipoteca',     nombre: 'Hipoteca',           icono: 'home',       color: '#3B82F6', bg: '#DBEAFE', revolving: false },
+  { id: 'coche',        nombre: 'Préstamo coche',     icono: 'car',        color: '#0EA5E9', bg: '#E0F2FE', revolving: false },
+  { id: 'estudios',     nombre: 'Préstamo estudios',  icono: 'book',       color: '#8B5CF6', bg: '#EDE4FE', revolving: false },
+  { id: 'financiacion', nombre: 'Financiación',       icono: 'creditcard', color: '#F59E0B', bg: '#FEF3C7', revolving: false },
+  { id: 'aplazado',     nombre: 'Pago aplazado',      icono: 'calendar',   color: '#EC4899', bg: '#FCE7F3', revolving: false },
+  { id: 'tarjeta',      nombre: 'Tarjeta de crédito', icono: 'creditcard', color: '#EF4444', bg: '#FEE2E2', revolving: true },
+  { id: 'revolving',    nombre: 'Tarjeta revolving',  icono: 'rotate',     color: '#DC2626', bg: '#FEE2E2', revolving: true },
+  { id: 'linea',        nombre: 'Línea de crédito',   icono: 'wallet',     color: '#F97316', bg: '#FFEDD5', revolving: true },
+  { id: 'aeat',         nombre: 'Aplazamiento AEAT',  icono: 'landmark',   color: '#64748B', bg: '#E2E8F0', revolving: false },
+  { id: 'familiar',     nombre: 'Préstamo familiar',  icono: 'users',      color: '#14B8A6', bg: '#CCFBF1', revolving: false },
 ]
 
 export const plataformaDe = (id: string) => PLATAFORMAS.find((p) => p.id === id) ?? PLATAFORMAS[PLATAFORMAS.length - 1]
