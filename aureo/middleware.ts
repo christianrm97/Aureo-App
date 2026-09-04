@@ -1,7 +1,21 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 
-const PUBLICAS = ['/login', '/auth', '/api/health', '/api/logo', '/api/noticias', '/api/precios']
+/**
+ * Se protege por lista de lo PRIVADO, no de lo publico.
+ *
+ * Con la lista al reves, cada pagina nueva nacia bloqueada: la politica de
+ * privacidad, el sitemap y el robots.txt acabaron redirigidos al login, que
+ * para un buscador significa que la web no existe. Aqui lo que no esta
+ * listado es publico, y una ruta inventada da 404 en vez de mandar al login.
+ */
+const PRIVADAS = [
+  '/api/gastos', '/api/cuentas', '/api/perfil', '/api/deudas',
+  '/api/ingresos', '/api/recibos', '/api/suscripciones', '/api/recurrentes',
+]
+
+const esPrivada = (ruta: string) =>
+  ruta === '/' || PRIVADAS.some((p) => ruta === p || ruta.startsWith(p + '/'))
 
 /**
  * Refresca la sesion en cada peticion y protege lo privado. Sin esto los
@@ -27,11 +41,16 @@ export async function middleware(req: NextRequest) {
     },
   })
 
-  const { data: { user } } = await supabase.auth.getUser()
   const ruta = req.nextUrl.pathname
-  const esPublica = PUBLICAS.some((p) => ruta === p || ruta.startsWith(p + '/'))
+  const privada = esPrivada(ruta)
 
-  if (!user && !esPublica) {
+  // Sin ruta privada de por medio no hace falta preguntar por el usuario:
+  // ahorra una llamada a Supabase en cada imagen, icono o pagina legal.
+  if (!privada && ruta !== '/login') return res
+
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user && privada) {
     // El Atajo de iPhone no tiene cookies: se identifica con su token y lo
     // valida la propia ruta, asi que no se le redirige a una pantalla de login.
     if (ruta.startsWith('/api/')) {
