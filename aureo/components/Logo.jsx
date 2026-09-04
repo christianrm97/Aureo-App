@@ -25,6 +25,8 @@ export default function Logo({ plataforma, size = 44 }) {
         <img
           src={`/api/logo/${clave}`}
           alt=""
+          loading="lazy"
+          decoding="async"
           width={size * 0.55}
           height={size * 0.55}
           style={{ width: size * 0.55, height: size * 0.55, objectFit: 'contain' }}

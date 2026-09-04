@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Plus, Trash2, Laptop, Wrench, Tag, Home, Gift, LineChart, Undo2, Sparkles, TrendingUp, Calendar, Repeat } from 'lucide-react'
 import { TIPOS_INGRESO, tipoIngresoDe } from '@/lib/catalogo'
-import { fmt, fmt2, PageHeader, Sheet, Campo, Boton, Vacio } from './ui'
+import { fmt, fmt2, PageHeader, Sheet, Campo, Boton, Vacio, ErrorCampo } from './ui'
 
 const ICONOS = {
   laptop: Laptop, wrench: Wrench, tag: Tag, home: Home, gift: Gift,
@@ -124,14 +124,17 @@ function AltaIngreso({ onClose, onCrear }) {
   const [tipo, setTipo] = useState('puntual')
   const [dia, setDia] = useState(String(new Date().getDate()))
   const [guardando, setGuardando] = useState(false)
+  const [error, setError] = useState(null)
   const t = tipoIngresoDe(categoria)
 
   const enviar = async (e) => {
     e.preventDefault()
     const valor = parseFloat(String(importe).replace(',', '.'))
-    if (!valor || valor <= 0 || guardando) return
+    if (guardando) return
+    if (!valor || valor <= 0) { setError('Escribe un importe mayor que 0'); return }
     setGuardando(true)
-    await onCrear('ingresos', {
+    setError(null)
+    const res = await onCrear('ingresos', {
       categoria,
       concepto: concepto.trim() || t.nombre,
       importe: valor,
@@ -139,6 +142,7 @@ function AltaIngreso({ onClose, onCrear }) {
       dia: Number(dia) || 1,
     })
     setGuardando(false)
+    if (!res || !res.ok) { setError(res?.error ?? 'No se pudo guardar. Inténtalo otra vez.'); return }
     onClose()
   }
 
@@ -202,6 +206,7 @@ function AltaIngreso({ onClose, onCrear }) {
         </Campo>
       )}
 
+      <ErrorCampo>{error}</ErrorCampo>
       <Boton type="submit" disabled={guardando}>{guardando ? 'Guardando…' : 'Añadir ingreso'}</Boton>
     </Sheet>
   )

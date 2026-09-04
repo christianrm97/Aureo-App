@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Plus, Trash2, CreditCard, Banknote, Home, Calendar, Users, TrendingDown, Car, BookOpen, RotateCw, Wallet, Landmark, Calculator } from 'lucide-react'
 import { TIPOS_DEUDA, tipoDeudaDe } from '@/lib/catalogo'
 import { cuotaFrancesa } from '@/lib/simulador'
-import { fmt, fmt2, PageHeader, Sheet, Campo, Boton, Vacio } from './ui'
+import { fmt, fmt2, PageHeader, Sheet, Campo, Boton, Vacio, ErrorCampo } from './ui'
 
 const ICONOS = {
   creditcard: CreditCard, banknote: Banknote, home: Home, calendar: Calendar, users: Users,
@@ -124,6 +124,7 @@ function AltaDeuda({ onClose, onCrear }) {
   const [tae, setTae] = useState('')
   const [meses, setMeses] = useState('')
   const [guardando, setGuardando] = useState(false)
+  const [error, setError] = useState(null)
   const t = tipoDeudaDe(tipo)
 
   // Con capital, tipo y plazo la cuota no se pregunta: se calcula.
@@ -138,9 +139,12 @@ function AltaDeuda({ onClose, onCrear }) {
     e.preventDefault()
     const saldo = parseFloat(String(pendiente).replace(',', '.'))
     const mensual = cuotaCalculada || parseFloat(String(cuota).replace(',', '.'))
-    if (!saldo || !mensual || saldo <= 0 || mensual <= 0 || guardando) return
+    if (guardando) return
+    if (!saldo || saldo <= 0) { setError('Escribe cuánto queda pendiente'); return }
+    if (!mensual || mensual <= 0) { setError('Indica la cuota, o el plazo para calcularla'); return }
     setGuardando(true)
-    await onCrear('deudas', {
+    setError(null)
+    const res = await onCrear('deudas', {
       tipo,
       nombre: nombre.trim() || t.nombre,
       entidad: entidad.trim() || null,
@@ -151,6 +155,7 @@ function AltaDeuda({ onClose, onCrear }) {
       meses: meses ? parseInt(meses, 10) : null,
     })
     setGuardando(false)
+    if (!res || !res.ok) { setError(res?.error ?? 'No se pudo guardar. Inténtalo otra vez.'); return }
     onClose()
   }
 
@@ -224,6 +229,7 @@ function AltaDeuda({ onClose, onCrear }) {
           className="w-full bg-transparent outline-none text-[16px]" />
       </Campo>
 
+      <ErrorCampo>{error}</ErrorCampo>
       <Boton type="submit" disabled={guardando}>{guardando ? 'Guardando…' : 'Añadir deuda'}</Boton>
     </Sheet>
   )

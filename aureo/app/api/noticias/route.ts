@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { comprobarLimite, LIMITES } from '@/lib/limite'
 
 export const revalidate = 600 // 10 min: son titulares, no cotizaciones
 
@@ -102,6 +103,9 @@ async function leerFuente(f: (typeof FUENTES)[number]): Promise<Noticia[]> {
 
 // GET /api/noticias?limit=60 — titulares financieros agregados
 export async function GET(req: Request) {
+  const frenado = comprobarLimite(req, "noticias", LIMITES.publica)
+  if (frenado) return frenado
+
   const limite = Math.min(Number(new URL(req.url).searchParams.get('limit')) || 60, 120)
   const tandas = await Promise.all(FUENTES.map(leerFuente))
 

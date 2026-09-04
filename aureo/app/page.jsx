@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo, useEffect, useCallback } from 'react'
+import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, ReferenceLine,
@@ -20,6 +21,7 @@ import DeudaView from '@/components/DeudaView'
 import IngresosView from '@/components/IngresosView'
 import ConsejoAureo, { useConsejoDiario } from '@/components/ConsejoAureo'
 import NoticiasView from '@/components/NoticiasView'
+import MercadosView from '@/components/MercadosView'
 import Bienvenida from '@/components/Bienvenida'
 import Ajustes from '@/components/Ajustes'
 import SimuladorView from '@/components/SimuladorView'
@@ -167,8 +169,9 @@ export default function App() {
   }
 
   const handleAddGasto = async (g) => {
-    const res = await api('gastos', { method: 'POST', body: JSON.stringify(g) })
-    if (res.ok) setGastos((prev) => [res.gasto, ...prev])
+    const res = await api('gastos', { method: 'POST', body: JSON.stringify(g) }).catch(() => null)
+    if (!res || !res.ok) throw new Error(res?.error ?? 'No se pudo guardar el gasto')
+    setGastos((prev) => [res.gasto, ...prev])
     setModalOpen(false)
   }
 
@@ -222,7 +225,7 @@ export default function App() {
               className="w-9 h-9 rounded-full grid place-items-center overflow-hidden"
               style={{ background: '#fff', border: '1px solid var(--aureo-border)' }}>
               {usuario?.avatar
-                ? <img src={usuario.avatar} alt="" width={36} height={36} referrerPolicy="no-referrer" />
+                ? <Image src={usuario.avatar} alt="" width={36} height={36} referrerPolicy="no-referrer" />
                 : <Settings className="w-4 h-4" />}
             </button>
           </div>
@@ -238,7 +241,7 @@ export default function App() {
             <SpaceObjetivo liquido={liquido} objetivo={OBJETIVO} progreso={progreso} oculto={oculto} analisis={analisis} />
             <FondoYCheckpoint balance={balance} ingresosExtra={balance.ingresosExtra} oculto={oculto}
               onIngresos={() => setTab('ingresos')} />
-            <SectionHeader title="Cuentas" />
+            <SectionHeader title="Cuentas" right="Mercados" onRight={() => setTab('mercados')} />
             <CuentasLista cuentas={cuentas} gastadoTotal={gastadoTotal} oculto={oculto} />
             <SectionHeader title="Tu mes" />
             <ResumenCompromisos balance={balance} oculto={oculto}
@@ -261,6 +264,8 @@ export default function App() {
         )}
 
         {tab === 'noticias' && <NoticiasView onBack={() => setTab('home')} />}
+
+        {tab === 'mercados' && <MercadosView onBack={() => setTab('home')} />}
 
         {tab === 'ajustes' && (
           <Ajustes usuario={usuario} perfil={perfil} cuentas={cuentasDB}
@@ -881,8 +886,8 @@ function ModalGasto({ onClose, onSubmit, estado }) {
     setError(null)
     try {
       await onSubmit({ nota: nota.trim(), importe: valor, categoria })
-    } catch {
-      setError('No se pudo guardar. Inténtalo otra vez.')
+    } catch (e) {
+      setError(e?.message ?? 'No se pudo guardar. Inténtalo otra vez.')
     } finally {
       setSaving(false)
     }

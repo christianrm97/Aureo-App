@@ -99,3 +99,14 @@ export function Vacio({ icon: Icon, titulo, texto }) {
     </motion.div>
   )
 }
+
+/** Error de formulario: visible, con rol para lectores de pantalla. */
+export function ErrorCampo({ children }) {
+  if (!children) return null
+  return (
+    <div role="alert" className="rounded-2xl px-3.5 py-3 mb-3 flex items-start gap-2"
+      style={{ background: '#FEE2E2', border: '1px solid #FCA5A5' }}>
+      <span className="text-[13px] leading-snug" style={{ color: '#7F1D1D' }}>{children}</span>
+    </div>
+  )
+}

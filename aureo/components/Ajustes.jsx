@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { LogOut, Copy, Check, RefreshCw, Smartphone, Target, ShieldCheck, Pencil } from 'lucide-react'
 import { fmt2, api, PageHeader, Campo, Boton } from './ui'
@@ -54,8 +55,8 @@ export default function Ajustes({ usuario, perfil, cuentas, onBack, onCambio }) 
       <motion.section initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="aureo-card p-5">
         <div className="flex items-center gap-3">
           {usuario?.avatar ? (
-            <img src={usuario.avatar} alt="" width={52} height={52} className="rounded-full"
-              referrerPolicy="no-referrer" />
+            <Image src={usuario.avatar} alt={'Foto de perfil de ' + (usuario.nombre ?? 'tu cuenta')}
+              width={52} height={52} className="rounded-full" referrerPolicy="no-referrer" />
           ) : (
             <div className="rounded-full grid place-items-center text-white font-semibold"
               style={{ width: 52, height: 52, background: 'var(--aureo-purple)' }}>

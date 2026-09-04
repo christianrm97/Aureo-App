@@ -94,3 +94,45 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Prosa de las paginas legales: ancho comodo y jerarquia clara al leer */
+.legal h2 {
+  font-size: 17px;
+  font-weight: 600;
+  margin: 28px 0 10px;
+  letter-spacing: -0.01em;
+}
+.legal h2:first-child { margin-top: 0; }
+.legal p, .legal li {
+  font-size: 14.5px;
+  line-height: 1.65;
+  color: var(--aureo-text-dim);
+}
+.legal p { margin-bottom: 12px; }
+.legal ul { margin: 0 0 14px; padding-left: 20px; list-style: disc; }
+.legal li { margin-bottom: 7px; }
+.legal strong { color: var(--aureo-text); font-weight: 600; }
+.legal a { color: var(--aureo-purple); text-decoration: underline; text-underline-offset: 2px; }
+.legal code {
+  font-size: 13px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: var(--aureo-surface-2);
+  border: 1px solid var(--aureo-border);
+}
+.legal table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 6px 0 16px;
+  font-size: 13.5px;
+  display: block;
+  overflow-x: auto;
+}
+.legal th, .legal td {
+  text-align: left;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--aureo-border);
+  color: var(--aureo-text-dim);
+  white-space: nowrap;
+}
+.legal th { color: var(--aureo-text); font-weight: 600; }

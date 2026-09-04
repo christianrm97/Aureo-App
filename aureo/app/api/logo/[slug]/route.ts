@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
+import sharp from 'sharp'
 import * as simpleIcons from 'simple-icons'
 import { PLATAFORMAS } from '@/lib/catalogo'
+import { comprobarLimite, LIMITES } from '@/lib/limite'
 
 // Los logos se sirven desde el servidor por dos razones: importar simple-icons
 // en el cliente mete 3.400 marcas en el bundle, y proxear el favicon evita que
@@ -23,6 +25,9 @@ const cabeceras = (tipo: string) => ({
  * 3. Si tampoco hay favicon, 404 y el cliente pinta el monograma.
  */
 export async function GET(req: NextRequest, { params }: { params: { slug: string } }) {
+  const frenado = comprobarLimite(req, 'logo', LIMITES.publica)
+  if (frenado) return frenado
+
   const slug = params.slug.toLowerCase().replace(/[^a-z0-9]/g, '')
   const clave = `si${slug.charAt(0).toUpperCase()}${slug.slice(1)}`
   const icono = (simpleIcons as unknown as Record<string, Icono>)[clave]
@@ -46,7 +51,15 @@ export async function GET(req: NextRequest, { params }: { params: { slug: string
     const buffer = await res.arrayBuffer()
     if (buffer.byteLength < 100) return new NextResponse('No encontrado', { status: 404 })
 
-    return new NextResponse(buffer, { headers: cabeceras(res.headers.get('content-type') ?? 'image/png') })
+    // Se reencoda a WebP: un favicon PNG de 128 px baja de ~3,5 KB a ~1 KB, y
+    // en una rejilla de 33 plataformas eso son 80 KB menos por pantalla.
+    try {
+      const webp = await sharp(Buffer.from(buffer)).resize(96, 96, { fit: 'inside' }).webp({ quality: 82 }).toBuffer()
+      return new NextResponse(webp, { headers: cabeceras('image/webp') })
+    } catch {
+      // Si sharp no puede con el formato, se sirve el original antes que nada
+      return new NextResponse(buffer, { headers: cabeceras(res.headers.get('content-type') ?? 'image/png') })
+    }
   } catch {
     return new NextResponse('No encontrado', { status: 404 })
   }

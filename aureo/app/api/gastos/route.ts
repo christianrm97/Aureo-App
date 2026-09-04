@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseServidor, supabaseAdmin, usuarioActual } from '@/lib/supabase/servidor'
 import { validarGasto } from '@/lib/gastos'
+import { comprobarLimite, LIMITES } from '@/lib/limite'
 
 export const dynamic = 'force-dynamic'
 
@@ -54,6 +55,10 @@ export async function GET(req: NextRequest) {
 
 // POST /api/gastos — desde la web (sesión) o desde el Atajo (token)
 export async function POST(req: NextRequest) {
+  // El Atajo entra sin sesion: hay que frenar la fuerza bruta sobre el token
+  const frenado = comprobarLimite(req, 'gastos-post', LIMITES.atajo)
+  if (frenado) return frenado
+
   let body: unknown
   try {
     body = await req.json()

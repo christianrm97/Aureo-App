@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Newspaper, ExternalLink, RefreshCw, Clock } from 'lucide-react'
 import { api, PageHeader, Vacio } from './ui'
@@ -28,19 +28,40 @@ function hace(ts) {
   return new Date(ts).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
 }
 
+const REFRESCO_MS = 300_000 // 5 min: los feeds no publican mas rapido
+
 export default function NoticiasView({ onBack }) {
   const [datos, setDatos] = useState(null)
   const [cargando, setCargando] = useState(true)
+  const [nuevas, setNuevas] = useState(0)
   const [medio, setMedio] = useState('todos')
+  const vistos = useRef(new Set())
 
-  const cargar = async () => {
-    setCargando(true)
+  const cargar = async (silencioso = false) => {
+    if (!silencioso) setCargando(true)
     const r = await api('noticias?limit=60').catch(() => null)
-    if (r?.items) setDatos(r)
+    if (r?.items) {
+      if (silencioso && vistos.current.size) {
+        const recien = r.items.filter((n) => !vistos.current.has(n.id)).length
+        if (recien > 0) setNuevas((v) => v + recien)
+      }
+      r.items.forEach((n) => vistos.current.add(n.id))
+      setDatos(r)
+    }
     setCargando(false)
   }
 
-  useEffect(() => { cargar() }, [])
+  useEffect(() => {
+    cargar()
+    // Se refresca solo, pero unicamente con la pestana delante: en segundo
+    // plano no lo ve nadie y gasta bateria.
+    const t = setInterval(() => {
+      if (document.visibilityState === 'visible') cargar(true)
+    }, REFRESCO_MS)
+    const alVolver = () => { if (document.visibilityState === 'visible') cargar(true) }
+    document.addEventListener('visibilitychange', alVolver)
+    return () => { clearInterval(t); document.removeEventListener('visibilitychange', alVolver) }
+  }, [])
 
   const items = useMemo(() => {
     if (!datos?.items) return []
@@ -50,7 +71,7 @@ export default function NoticiasView({ onBack }) {
   return (
     <>
       <PageHeader title="Noticias" onBack={onBack} right={
-        <button onClick={cargar} aria-label="Actualizar" disabled={cargando}
+        <button onClick={() => { setNuevas(0); cargar() }} aria-label="Actualizar titulares" disabled={cargando}
           className="w-9 h-9 rounded-full grid place-items-center flex-shrink-0"
           style={{ background: '#fff', border: '1px solid var(--aureo-border)' }}>
           <RefreshCw className={`w-4 h-4 ${cargando ? 'animate-spin' : ''}`} style={{ color: 'var(--aureo-purple)' }} />
@@ -68,6 +89,14 @@ export default function NoticiasView({ onBack }) {
           {datos ? `${datos.medios.length} medios · actualizado ${hace(datos.actualizado)}` : 'Leyendo los feeds'}
         </div>
       </motion.section>
+
+      {nuevas > 0 && (
+        <button onClick={() => { setNuevas(0); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
+          className="w-full mt-4 py-2.5 rounded-full text-[13px] font-semibold"
+          style={{ background: 'var(--aureo-purple)', color: '#fff' }}>
+          {nuevas} {nuevas === 1 ? 'titular nuevo' : 'titulares nuevos'}
+        </button>
+      )}
 
       {datos?.medios?.length > 0 && (
         <div className="flex gap-2 overflow-x-auto no-scrollbar mt-4 -mx-1 px-1 pb-1">

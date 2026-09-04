@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseServidor, usuarioActual } from '@/lib/supabase/servidor'
+import { comprobarLimite, LIMITES } from '@/lib/limite'
 
 type Validador<T> = (body: unknown) => { valor: T } | { error: string }
 
@@ -28,6 +29,9 @@ export function coleccion<T extends object>(tabla: string, orden: string, valida
     },
 
     async POST(req: NextRequest) {
+      const frenado = comprobarLimite(req, 'escritura', LIMITES.escritura)
+      if (frenado) return frenado
+
       const db = supabaseServidor()
       if (!db) return SIN_DB
       const usuario = await usuarioActual()

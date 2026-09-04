@@ -1,0 +1,34 @@
+/**
+ * Datos del responsable y del servicio. Todo el texto legal sale de aqui:
+ * cambia estos campos y se actualizan la politica, los terminos y el aviso.
+ *
+ * OJO: los marcados como PENDIENTE salen visiblemente resaltados en la web.
+ * Una politica de privacidad sin responsable identificado no cumple el RGPD,
+ * asi que no se inventan: los rellenas tu.
+ */
+export const LEGAL = {
+  servicio: 'Aureo',
+  dominio: 'aureo-app-blush.vercel.app',
+  url: 'https://aureo-app-blush.vercel.app',
+
+  /** Nombre y apellidos, o razon social si lo pones a nombre de una sociedad. */
+  responsable: 'Christian Ruiz',
+  /** NIF o CIF del responsable. */
+  nif: 'PENDIENTE',
+  /** Domicilio a efectos de notificaciones. */
+  direccion: 'PENDIENTE',
+  /** Correo de contacto y de ejercicio de derechos. */
+  email: 'cruizm9@gmail.com',
+
+  /** Ultima revision del texto legal. */
+  actualizado: '2026-09-04',
+
+  /** Encargados del tratamiento: quien toca los datos por cuenta del servicio. */
+  proveedores: [
+    { nombre: 'Supabase', uso: 'Base de datos y autenticación', ubicacion: 'Unión Europea (eu-west)', web: 'https://supabase.com/privacy' },
+    { nombre: 'Vercel', uso: 'Alojamiento de la aplicación', ubicacion: 'EE. UU., con cláusulas contractuales tipo', web: 'https://vercel.com/legal/privacy-policy' },
+    { nombre: 'Google', uso: 'Inicio de sesión con tu cuenta', ubicacion: 'EE. UU., con cláusulas contractuales tipo', web: 'https://policies.google.com/privacy' },
+  ],
+} as const
+
+export const faltaPorRellenar = (valor: string) => valor === 'PENDIENTE'

@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Plus, Trash2, Zap, Droplet, Flame, Wifi, Smartphone, Landmark, Trash, Building2, Shield, Receipt, Repeat, Calendar } from 'lucide-react'
 import { PLATAFORMAS, TIPOS_RECIBO, plataformaDe, tipoReciboDe } from '@/lib/catalogo'
 import Logo from './Logo'
-import { fmt, fmt2, api, PageHeader, Sheet, Campo, Boton, Vacio } from './ui'
+import { fmt, fmt2, api, PageHeader, Sheet, Campo, Boton, Vacio, ErrorCampo } from './ui'
 
 const ICONOS_RECIBO = {
   zap: Zap, droplet: Droplet, flame: Flame, wifi: Wifi, smartphone: Smartphone,
@@ -147,6 +147,7 @@ function AltaSuscripcion({ onClose, onCrear }) {
   const [cuota, setCuota] = useState(String(p.planes[0].precio).replace('.', ','))
   const [dia, setDia] = useState('1')
   const [guardando, setGuardando] = useState(false)
+  const [error, setError] = useState(null)
 
   const elegir = (id) => {
     const nueva = plataformaDe(id)
@@ -164,10 +165,13 @@ function AltaSuscripcion({ onClose, onCrear }) {
   const enviar = async (e) => {
     e.preventDefault()
     const valor = parseFloat(String(cuota).replace(',', '.'))
-    if (!valor || valor <= 0 || guardando) return
+    if (guardando) return
+    if (!valor || valor <= 0) { setError('Escribe una cuota mayor que 0'); return }
     setGuardando(true)
-    await onCrear('suscripciones', { plataforma, plan, cuota: valor, dia: Number(dia) || 1 })
+    setError(null)
+    const res = await onCrear('suscripciones', { plataforma, plan, cuota: valor, dia: Number(dia) || 1 })
     setGuardando(false)
+    if (!res || !res.ok) { setError(res?.error ?? 'No se pudo guardar. Inténtalo otra vez.'); return }
     onClose()
   }
 
@@ -218,6 +222,7 @@ function AltaSuscripcion({ onClose, onCrear }) {
           className="w-full bg-transparent outline-none text-[16px]" />
       </Campo>
 
+      <ErrorCampo>{error}</ErrorCampo>
       <Boton type="submit" disabled={guardando}>{guardando ? 'Guardando…' : 'Añadir suscripción'}</Boton>
     </Sheet>
   )
@@ -230,15 +235,19 @@ function AltaRecibo({ onClose, onCrear }) {
   const [dia, setDia] = useState('1')
   const [periodicidad, setPeriodicidad] = useState('mensual')
   const [guardando, setGuardando] = useState(false)
+  const [error, setError] = useState(null)
   const t = tipoReciboDe(tipo)
 
   const enviar = async (e) => {
     e.preventDefault()
     const valor = parseFloat(String(importe).replace(',', '.'))
-    if (!valor || valor <= 0 || guardando) return
+    if (guardando) return
+    if (!valor || valor <= 0) { setError('Escribe un importe mayor que 0'); return }
     setGuardando(true)
-    await onCrear('recibos', { tipo, companyia: companyia.trim() || null, importe: valor, dia: Number(dia) || 1, periodicidad })
+    setError(null)
+    const res = await onCrear('recibos', { tipo, companyia: companyia.trim() || null, importe: valor, dia: Number(dia) || 1, periodicidad })
     setGuardando(false)
+    if (!res || !res.ok) { setError(res?.error ?? 'No se pudo guardar. Inténtalo otra vez.'); return }
     onClose()
   }
 
@@ -296,6 +305,7 @@ function AltaRecibo({ onClose, onCrear }) {
           className="w-full bg-transparent outline-none text-[16px]" />
       </Campo>
 
+      <ErrorCampo>{error}</ErrorCampo>
       <Boton type="submit" disabled={guardando}>{guardando ? 'Guardando…' : 'Añadir recibo'}</Boton>
     </Sheet>
   )
