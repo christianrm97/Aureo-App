@@ -6,10 +6,16 @@
  * Una politica de privacidad sin responsable identificado no cumple el RGPD,
  * asi que no se inventan: los rellenas tu.
  */
+/** Dominio publico del servicio. Sin barra final. */
+const SITIO = (process.env.NEXT_PUBLIC_SITIO ?? 'https://aureo-app-blush.vercel.app').replace(/\/$/, '')
+
 export const LEGAL = {
   servicio: 'Aureo',
-  dominio: 'aureo-app-blush.vercel.app',
-  url: 'https://aureo-app-blush.vercel.app',
+  // El dominio sale de NEXT_PUBLIC_SITIO para poder cambiarlo desde Vercel sin
+  // tocar codigo: de el cuelgan el sitemap, robots, los enlaces canonicos y las
+  // tarjetas Open Graph, asi que apuntar mal aqui los rompe todos a la vez.
+  dominio: SITIO.replace(/^https?:\/\//, ''),
+  url: SITIO,
 
   /** Nombre y apellidos, o razon social si lo pones a nombre de una sociedad. */
   responsable: 'Christian Ruiz',
