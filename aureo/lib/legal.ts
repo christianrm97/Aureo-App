@@ -18,10 +18,10 @@ export const LEGAL = {
   /** Domicilio a efectos de notificaciones. */
   direccion: 'PENDIENTE',
   /** Correo de contacto y de ejercicio de derechos. */
-  email: 'cruizm9@gmail.com',
+  email: 'aureo.app@outlook.com',
 
   /** Ultima revision del texto legal. */
-  actualizado: '2026-09-04',
+  actualizado: '2026-09-05',
 
   /** Encargados del tratamiento: quien toca los datos por cuenta del servicio. */
   proveedores: [
