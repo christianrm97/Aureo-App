@@ -14,9 +14,10 @@ const MODOS = [
   { id: 'ahorro',   label: 'Ahorro',   icon: PiggyBank, color: '#22C55E' },
 ]
 
-/** El preset de prestamo es el caso real que tienes sobre la mesa. */
+/** El preset de prestamo es el caso real que tienes sobre la mesa: Santander
+ *  7.000 EUR a 48 meses al 5,50% TIN, con 0% de comision de apertura. */
 const INICIAL = {
-  prestamo: { capital: 6000,   tin: 5, meses: 24,  comision: 0 },
+  prestamo: { capital: 7000,   tin: 5.5, meses: 48,  comision: 0 },
   hipoteca: { capital: 150000, tin: 3, meses: 360, comision: 0 },
   ahorro:   { inicial: 1000, mensual: 300, meses: 24, rentabilidad: 2.47 },
 }

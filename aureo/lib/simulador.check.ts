@@ -75,4 +75,26 @@ assert.equal(comp.b.margen, 310)
 assert.equal(comp.diferencia, 17)
 assert.equal(comp.mejor, 'Con préstamo')
 
+// --- Caso Santander v2.0: 7.000 EUR / 48 meses / 5,50% TIN ---
+// Las cifras salen del documento de estrategia. Si el motor deja de
+// reproducirlas, la pantalla de deuda esta mintiendo.
+const santander = simularPrestamo({ capital: 7000, tin: 5.5, meses: 48 })
+assert.equal(santander.cuota, 162.8)
+assert.equal(santander.tae, 5.64)
+assert.equal(Math.round(santander.totalIntereses), 814)
+assert.equal(Math.round(santander.totalPagado), 7814)
+
+// Santander gana a Revolut e ING con holgura: menos de la mitad de tipo.
+const revolut7 = simularPrestamo({ capital: 6000, tin: 11.9, meses: 24 })
+assert.ok(santander.cuota < revolut7.cuota, 'la cuota Santander tiene que ser menor')
+
+// Amortizar 100 EUR/mes desde abril de 2027 con ~6.207 EUR vivos: reducir
+// plazo tiene que ahorrar mucho mas que reducir cuota, que es la decision
+// operativa critica del documento.
+const vivo = { capital: 6207, tin: 5.5, meses: 42 }
+const plazo = amortizarAnticipado(vivo, 1200, 'plazo')
+const cuota = amortizarAnticipado(vivo, 1200, 'cuota')
+assert.ok(plazo.ahorroIntereses > cuota.ahorroIntereses, 'reducir plazo ahorra mas')
+assert.ok(plazo.mesesAhorrados > 0)
+
 console.log('simulador: OK')

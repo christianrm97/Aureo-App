@@ -12,6 +12,7 @@ import { createServerClient } from '@supabase/ssr'
 const PRIVADAS = [
   '/api/gastos', '/api/cuentas', '/api/perfil', '/api/deudas',
   '/api/ingresos', '/api/recibos', '/api/suscripciones', '/api/recurrentes',
+  '/api/proyectos',
 ]
 
 const esPrivada = (ruta: string) =>

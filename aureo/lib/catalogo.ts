@@ -169,3 +169,26 @@ export const TIPOS_INGRESO: TipoIngreso[] = [
 ]
 
 export const tipoIngresoDe = (id: string) => TIPOS_INGRESO.find((t) => t.id === id) ?? TIPOS_INGRESO[TIPOS_INGRESO.length - 1]
+
+// ---------------- PROYECTOS ----------------
+export interface TipoProyecto {
+  id: string
+  nombre: string
+  icono: string
+  color: string
+  bg: string
+}
+
+/**
+ * La cartera activa. No es una lista cerrada: 'otro' deja registrar cualquier
+ * proyecto nuevo sin tocar el codigo.
+ */
+export const TIPOS_PROYECTO: TipoProyecto[] = [
+  { id: 'livasonic', nombre: 'LivaSonic',   icono: 'store',     color: '#EC4899', bg: '#FCE7F3' },
+  { id: 'bot',       nombre: 'Bot Trading', icono: 'linechart', color: '#22C55E', bg: '#DCFCE7' },
+  { id: 'padelito',  nombre: 'Padelito',    icono: 'trophy',    color: '#3B82F6', bg: '#DBEAFE' },
+  { id: 'otro',      nombre: 'Otro',        icono: 'sparkles',  color: '#9A93A8', bg: '#ECE7F1' },
+]
+
+export const tipoProyectoDe = (id: string) =>
+  TIPOS_PROYECTO.find((t) => t.id === id) ?? TIPOS_PROYECTO[TIPOS_PROYECTO.length - 1]

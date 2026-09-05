@@ -13,12 +13,14 @@ import {
   Banknote, LineChart, Wallet, X, TrendingUp, Sparkles, Eye, EyeOff,
   Trash2, RefreshCw, ArrowUp, ArrowDown, Receipt, TrendingDown, AlertTriangle,
   Newspaper, Calculator, ShieldCheck, Flag, Settings,
+  Rocket,
 } from 'lucide-react'
 
 import AureoRobot from '@/components/AureoRobot'
 import FijosView, { mensualizar } from '@/components/FijosView'
 import DeudaView from '@/components/DeudaView'
 import IngresosView from '@/components/IngresosView'
+import ProyectosView from '@/components/ProyectosView'
 import ConsejoAureo, { useConsejoDiario } from '@/components/ConsejoAureo'
 import NoticiasView from '@/components/NoticiasView'
 import MercadosView from '@/components/MercadosView'
@@ -26,7 +28,7 @@ import Bienvenida from '@/components/Bienvenida'
 import Ajustes from '@/components/Ajustes'
 import SimuladorView from '@/components/SimuladorView'
 import { fmt, fmt2, api, SectionHeader, PageHeader, Vacio } from '@/components/ui'
-import { OBJETIVO as OBJETIVO_DEF, FECHA_OBJETIVO, FONDO_EMERGENCIA as FONDO_DEF, CHECKPOINT } from '@/lib/perfil'
+import { OBJETIVO as OBJETIVO_DEF, FECHA_OBJETIVO, FONDO_EMERGENCIA as FONDO_DEF, CHECKPOINT, PRESUPUESTO_PROYECTOS } from '@/lib/perfil'
 import { resumen, analizar, proyectar, impactoGasto } from '@/lib/finanzas'
 
 const ICONS = {
@@ -52,6 +54,7 @@ export default function App() {
   const [recibos, setRecibos] = useState([])
   const [deudas, setDeudas] = useState([])
   const [ingresos, setIngresos] = useState([])
+  const [proyectos, setProyectos] = useState([])
   const [cuentasDB, setCuentasDB] = useState([])
   const [perfil, setPerfil] = useState(null)
   const [usuario, setUsuario] = useState(null)
@@ -65,10 +68,11 @@ export default function App() {
 
   const setters = useMemo(() => ({
     suscripciones: setSuscripciones, recibos: setRecibos, deudas: setDeudas, ingresos: setIngresos,
+    proyectos: setProyectos,
   }), [])
 
   const cargar = useCallback(async () => {
-    const [g, r, s, re, d, i, p, c, pf] = await Promise.all([
+    const [g, r, s, re, d, i, p, c, pf, pr] = await Promise.all([
       api('gastos?limit=100').catch(() => null),
       api('recurrentes').catch(() => null),
       api('suscripciones').catch(() => null),
@@ -78,6 +82,7 @@ export default function App() {
       api('precios').catch(() => null),
       api('cuentas').catch(() => null),
       api('perfil').catch(() => null),
+      api('proyectos').catch(() => null),
     ])
     if (g?.items) setGastos(g.items)
     if (r?.items) setRecurrentes(r.items)
@@ -89,6 +94,7 @@ export default function App() {
     if (c?.items) setCuentasDB(c.items)
     if (pf?.perfil) setPerfil(pf.perfil)
     if (pf?.usuario) setUsuario(pf.usuario)
+    if (pr?.items) setProyectos(pr.items)
     setCargado(true)
   }, [])
 
@@ -241,6 +247,7 @@ export default function App() {
             <SpaceObjetivo liquido={liquido} objetivo={OBJETIVO} progreso={progreso} oculto={oculto} analisis={analisis} />
             <FondoYCheckpoint balance={balance} ingresosExtra={balance.ingresosExtra} oculto={oculto}
               onIngresos={() => setTab('ingresos')} />
+            <ProyectosResumen movimientos={proyectos} oculto={oculto} onAbrir={() => setTab('proyectos')} />
             <SectionHeader title="Cuentas" right="Mercados" onRight={() => setTab('mercados')} />
             <CuentasLista cuentas={cuentas} gastadoTotal={gastadoTotal} oculto={oculto} />
             <SectionHeader title="Tu mes" />
@@ -282,6 +289,11 @@ export default function App() {
 
         {tab === 'ingresos' && (
           <IngresosView ingresos={ingresos} nomina={nomina} onBack={() => setTab('home')} oculto={oculto}
+            onCrear={crear} onBorrar={borrar} />
+        )}
+
+        {tab === 'proyectos' && (
+          <ProyectosView movimientos={proyectos} onBack={() => setTab('home')} oculto={oculto}
             onCrear={crear} onBorrar={borrar} />
         )}
 
@@ -494,6 +506,48 @@ function SpaceObjetivo({ liquido, objetivo, progreso, oculto, analisis }) {
         <span className="tabular font-medium" style={{ color: 'var(--aureo-text-dim)' }}>Faltan {oculto ? '•••' : fmt(falta)}</span>
       </div>
     </motion.section>
+  )
+}
+
+/**
+ * Resumen del presupuesto de proyectos en la home. Lo importante de un vistazo
+ * es cuanto queda y si este mes ya se ha pasado del tope.
+ */
+function ProyectosResumen({ movimientos, oculto, onAbrir }) {
+  const { restante, mes } = useMemo(() => {
+    const hoy = new Date()
+    let invertido = 0
+    let mes = 0
+    for (const m of movimientos) {
+      if (m.tipo !== 'inversion') continue
+      const importe = Number(m.importe)
+      invertido += importe
+      const d = new Date(Number(m.ts))
+      if (d.getMonth() === hoy.getMonth() && d.getFullYear() === hoy.getFullYear()) mes += importe
+    }
+    return { restante: Math.max(0, PRESUPUESTO_PROYECTOS.total - invertido), mes }
+  }, [movimientos])
+
+  const pasado = mes > PRESUPUESTO_PROYECTOS.topeMensual
+
+  return (
+    <motion.button initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} onClick={onAbrir}
+      className="aureo-card w-full mt-4 p-5 flex items-center gap-3 text-left">
+      <div className="w-11 h-11 rounded-full grid place-items-center flex-shrink-0" style={{ background: '#EFE7FB' }}>
+        <Rocket className="w-5 h-5" style={{ color: '#6C2BD9' }} strokeWidth={2.1} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="text-[14px] font-semibold">Proyectos</div>
+        <div className="text-[12px]" style={{ color: pasado ? '#EF4444' : 'var(--aureo-text-dim)' }}>
+          {oculto ? '•••' : fmt(mes)} de {fmt(PRESUPUESTO_PROYECTOS.topeMensual)} este mes
+          {pasado && ' · te has pasado'}
+        </div>
+      </div>
+      <div className="text-right flex-shrink-0">
+        <div className="tabular text-[16px] font-semibold">{oculto ? '••• €' : fmt(restante)}</div>
+        <div className="text-[11px]" style={{ color: 'var(--aureo-text-mute)' }}>disponible</div>
+      </div>
+    </motion.button>
   )
 }
 
