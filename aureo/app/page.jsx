@@ -21,6 +21,7 @@ import FijosView, { mensualizar } from '@/components/FijosView'
 import DeudaView from '@/components/DeudaView'
 import IngresosView from '@/components/IngresosView'
 import ProyectosView from '@/components/ProyectosView'
+import InstalarIOS from '@/components/InstalarIOS'
 import ConsejoAureo, { useConsejoDiario } from '@/components/ConsejoAureo'
 import NoticiasView from '@/components/NoticiasView'
 import MercadosView from '@/components/MercadosView'
@@ -243,6 +244,7 @@ export default function App() {
               onRobot={() => setConsejoAbierto(true)} humor={analisis.severidad === 'riesgo' ? 'alerta' : 'feliz'} />
             <ActionsRow onAdd={() => setModalOpen(true)} onIngresos={() => setTab('ingresos')}
               onFijos={() => setTab('fijos')} onSimulador={() => setTab('simulador')} />
+            <InstalarIOS />
             <AnalisisAureo analisis={analisis} oculto={oculto} onAbrir={() => setConsejoAbierto(true)} />
             <SpaceObjetivo liquido={liquido} objetivo={OBJETIVO} progreso={progreso} oculto={oculto} analisis={analisis} />
             <FondoYCheckpoint balance={balance} ingresosExtra={balance.ingresosExtra} oculto={oculto}
