@@ -20,14 +20,14 @@ export const LEGAL = {
   /** Nombre y apellidos, o razon social si lo pones a nombre de una sociedad. */
   responsable: 'Christian Ruiz',
   /** NIF o CIF del responsable. */
-  nif: 'PENDIENTE',
+  nif: '77195747L',
   /** Domicilio a efectos de notificaciones. */
-  direccion: 'PENDIENTE',
+  direccion: 'Málaga, 29312, España',
   /** Correo de contacto y de ejercicio de derechos. */
   email: 'aureo.app@outlook.com',
 
   /** Ultima revision del texto legal. */
-  actualizado: '2026-09-05',
+  actualizado: '2026-09-06',
 
   /** Encargados del tratamiento: quien toca los datos por cuenta del servicio. */
   proveedores: [
