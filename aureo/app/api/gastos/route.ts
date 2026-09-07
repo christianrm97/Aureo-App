@@ -59,6 +59,12 @@ export async function POST(req: NextRequest) {
   const frenado = comprobarLimite(req, 'gastos-post', LIMITES.atajo)
   if (frenado) return frenado
 
+  // Primero quien eres y luego que traes: validar antes de autenticar convierte
+  // el endpoint en un oraculo que responde distinto a quien no ha entrado.
+  const usuario = await usuarioActual()
+  const idAtajo = usuario ? null : await usuarioDelAtajo(req)
+  if (!usuario && !idAtajo) return NextResponse.json({ ok: false, error: 'No autenticado' }, { status: 401 })
+
   let body: unknown
   try {
     body = await req.json()
@@ -70,10 +76,6 @@ export async function POST(req: NextRequest) {
   if ('error' in validado) {
     return NextResponse.json({ ok: false, error: validado.error }, { status: 422 })
   }
-
-  const usuario = await usuarioActual()
-  const idAtajo = usuario ? null : await usuarioDelAtajo(req)
-  if (!usuario && !idAtajo) return NextResponse.json({ ok: false, error: 'No autenticado' }, { status: 401 })
 
   const fila = {
     user_id: usuario?.id ?? idAtajo!,
