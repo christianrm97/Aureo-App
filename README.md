@@ -57,6 +57,7 @@ npm run dev
 2. `supabase-auth.sql`
 3. `supabase-proyectos.sql`
 4. `supabase-vigilante.sql`
+5. `supabase-perfil-plan.sql`
 
 Después, activa el proveedor **Google** en Authentication y añade `https://<tu-dominio>/auth/callback` a las Redirect URLs.
 

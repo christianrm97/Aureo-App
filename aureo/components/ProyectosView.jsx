@@ -2,9 +2,10 @@
 
 import { useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Trash2, Store, LineChart, Trophy, Sparkles, Rocket, AlertTriangle, Flag, TrendingDown, TrendingUp } from 'lucide-react'
+import { Plus, Trash2, Store, LineChart, Trophy, Sparkles, Rocket, AlertTriangle, Flag, TrendingDown, TrendingUp, Settings } from 'lucide-react'
 import { TIPOS_PROYECTO, tipoProyectoDe } from '@/lib/catalogo'
-import { PRESUPUESTO_PROYECTOS, CHECKPOINT, presupuestoProyectos } from '@/lib/perfil'
+import { presupuestoProyectos, mesCorto } from '@/lib/perfil'
+import { mesesHasta } from '@/lib/finanzas'
 import { fmt, fmt2, PageHeader, Sheet, Campo, Boton, Vacio, ErrorCampo } from './ui'
 
 const ICONOS = { store: Store, linechart: LineChart, trophy: Trophy, sparkles: Sparkles }
@@ -16,7 +17,11 @@ const esDeEsteMes = (ts) => {
   return d.getMonth() === hoy.getMonth() && d.getFullYear() === hoy.getFullYear()
 }
 
-export default function ProyectosView({ movimientos, onBack, oculto, onCrear, onBorrar }) {
+/**
+ * Proyectos del usuario. El presupuesto (`plan`) y el `checkpoint` son suyos y
+ * opcionales: si no los ha definido, se ven sus movimientos sin tope ni meta.
+ */
+export default function ProyectosView({ movimientos, plan, checkpoint, onBack, oculto, onCrear, onBorrar, onAjustes }) {
   const [abierto, setAbierto] = useState(false)
 
   const resumen = useMemo(() => {
@@ -46,28 +51,24 @@ export default function ProyectosView({ movimientos, onBack, oculto, onCrear, on
       .map(([id, v]) => ({ id, ...v, roi: v.invertido > 0 ? (v.ingresado / v.invertido - 1) * 100 : null }))
       .sort((a, b) => b.invertido + b.ingresado - (a.invertido + a.ingresado))
 
+    const presupuesto = plan ? presupuestoProyectos(invertido, plan) : null
     return {
       invertido,
       ingresado,
       gastadoEsteMes,
-      restante: presupuestoProyectos(invertido).disponible,
-      aportado: presupuestoProyectos(invertido).total,
+      restante: presupuesto?.disponible ?? 0,
+      aportado: presupuesto?.total ?? 0,
       filas,
       // El checkpoint pide UN proyecto llegando al objetivo por si solo, no la
-      // suma de los tres: sumarlos daria por bueno un plan que no lo esta.
+      // suma de todos: sumarlos daria por bueno un plan que no lo esta.
       mejorDelMes: filas.reduce((m, f) => Math.max(m, f.ingresosMes), 0),
     }
-  }, [movimientos])
+  }, [movimientos, plan])
 
-  const pasado = resumen.gastadoEsteMes > PRESUPUESTO_PROYECTOS.topeMensual
-  const pctPresupuesto = Math.min(100, (resumen.invertido / Math.max(1, resumen.aportado)) * 100)
-
-  const hoy = new Date()
-  const mesesCheckpoint = Math.max(
-    0,
-    (CHECKPOINT.fecha.getFullYear() - hoy.getFullYear()) * 12 + (CHECKPOINT.fecha.getMonth() - hoy.getMonth()),
-  )
-  const pctCheckpoint = Math.min(100, (resumen.mejorDelMes / CHECKPOINT.ingresoExtraObjetivo) * 100)
+  const pasado = plan ? resumen.gastadoEsteMes > plan.topeMensual : false
+  const pctPresupuesto = plan ? Math.min(100, (resumen.invertido / Math.max(1, resumen.aportado)) * 100) : 0
+  const mesesCheckpoint = checkpoint ? Math.max(0, mesesHasta(new Date(), checkpoint.fecha)) : 0
+  const pctCheckpoint = checkpoint ? Math.min(100, (resumen.mejorDelMes / checkpoint.ingresoObjetivo) * 100) : 0
 
   return (
     <>
@@ -79,17 +80,33 @@ export default function ProyectosView({ movimientos, onBack, oculto, onCrear, on
           background: 'radial-gradient(120% 100% at 0% 0%, rgba(255,255,255,0.16) 0%, transparent 55%), linear-gradient(140deg, #6C2BD9 0%, #4C1D95 55%, #2E1065 100%)',
           boxShadow: '0 20px 40px -20px rgba(76,29,149,0.45)',
         }}>
-        <span className="chip"><Rocket className="w-3.5 h-3.5" /> Presupuesto restante</span>
-        <div className="tabular text-[42px] font-semibold mt-4 leading-none">
-          {oculto ? '••••,•• €' : fmt2(resumen.restante)}
-        </div>
-        <div className="text-[13px] text-white/80 mt-2">
-          de {oculto ? '•••' : fmt(resumen.aportado)} aportados · gastado {oculto ? '•••' : fmt(resumen.invertido)}
-        </div>
-        <div className="h-1.5 rounded-full mt-4 overflow-hidden" style={{ background: 'rgba(255,255,255,0.22)' }}>
-          <motion.div className="h-full rounded-full" style={{ background: '#fff' }}
-            initial={{ width: 0 }} animate={{ width: `${pctPresupuesto}%` }} transition={{ duration: 0.7 }} />
-        </div>
+        {plan ? (
+          <>
+            <span className="chip"><Rocket className="w-3.5 h-3.5" /> Presupuesto restante</span>
+            <div className="tabular text-[42px] font-semibold mt-4 leading-none">
+              {oculto ? '••••,•• €' : fmt2(resumen.restante)}
+            </div>
+            <div className="text-[13px] text-white/80 mt-2">
+              de {oculto ? '•••' : fmt(resumen.aportado)} aportados · gastado {oculto ? '•••' : fmt(resumen.invertido)}
+            </div>
+            <div className="h-1.5 rounded-full mt-4 overflow-hidden" style={{ background: 'rgba(255,255,255,0.22)' }}>
+              <motion.div className="h-full rounded-full" style={{ background: '#fff' }}
+                initial={{ width: 0 }} animate={{ width: `${pctPresupuesto}%` }} transition={{ duration: 0.7 }} />
+            </div>
+          </>
+        ) : (
+          <>
+            <span className="chip"><Rocket className="w-3.5 h-3.5" /> Tus proyectos</span>
+            <div className="tabular text-[42px] font-semibold mt-4 leading-none">
+              {oculto ? '••••,•• €' : fmt2(resumen.invertido)}
+            </div>
+            <div className="text-[13px] text-white/80 mt-2">invertidos · {oculto ? '•••' : fmt(resumen.ingresado)} generados</div>
+            <button onClick={onAjustes} className="mt-4 inline-flex items-center gap-1.5 text-[13px] font-semibold px-3 h-9 rounded-full"
+              style={{ background: 'rgba(255,255,255,0.18)' }}>
+              <Settings className="w-3.5 h-3.5" /> Define un presupuesto y un tope mensual
+            </button>
+          </>
+        )}
       </motion.section>
 
       <div className="grid grid-cols-2 gap-3 mt-4">
@@ -101,7 +118,7 @@ export default function ProyectosView({ movimientos, onBack, oculto, onCrear, on
             {oculto ? '•••' : fmt(resumen.gastadoEsteMes)}
           </div>
           <div className="text-[11px] mt-0.5" style={{ color: 'var(--aureo-text-mute)' }}>
-            tope {fmt(PRESUPUESTO_PROYECTOS.topeMensual)}
+            {plan ? `tope ${fmt(plan.topeMensual)}` : 'invertido'}
           </div>
         </div>
         <div className="aureo-card p-4">
@@ -121,37 +138,39 @@ export default function ProyectosView({ movimientos, onBack, oculto, onCrear, on
             <AlertTriangle className="w-4 h-4" style={{ color: '#EF4444' }} />
           </div>
           <div className="text-[13px]" style={{ color: 'var(--aureo-text-dim)' }}>
-            Te has pasado {fmt(resumen.gastadoEsteMes - PRESUPUESTO_PROYECTOS.topeMensual)} del tope de este mes.
-            Gastando al tope, el presupuesto dura hasta el checkpoint; por encima, se agota antes.
+            Te has pasado {fmt(resumen.gastadoEsteMes - plan.topeMensual)} del tope de este mes.
+            Por encima del tope, el presupuesto se agota antes de lo que planeaste.
           </div>
         </div>
       )}
 
-      <div className="aureo-card mt-4 p-5">
-        <div className="flex items-center justify-between">
-          <div className="text-[11px] uppercase tracking-wider flex items-center gap-1" style={{ color: 'var(--aureo-text-mute)' }}>
-            <Flag className="w-3 h-3" /> Checkpoint
+      {checkpoint && (
+        <div className="aureo-card mt-4 p-5">
+          <div className="flex items-center justify-between">
+            <div className="text-[11px] uppercase tracking-wider flex items-center gap-1" style={{ color: 'var(--aureo-text-mute)' }}>
+              <Flag className="w-3 h-3" /> Checkpoint · {mesCorto(checkpoint.fecha)}
+            </div>
+            <div className="text-[11px]" style={{ color: 'var(--aureo-text-mute)' }}>
+              {mesesCheckpoint === 0 ? 'este mes' : `en ${mesesCheckpoint} ${mesesCheckpoint === 1 ? 'mes' : 'meses'}`}
+            </div>
           </div>
-          <div className="text-[11px]" style={{ color: 'var(--aureo-text-mute)' }}>
-            {mesesCheckpoint === 0 ? 'este mes' : `en ${mesesCheckpoint} ${mesesCheckpoint === 1 ? 'mes' : 'meses'}`}
+          <div className="tabular text-[24px] font-semibold mt-1">
+            {oculto ? '•••' : fmt(resumen.mejorDelMes)}
+            <span className="text-[12px] font-normal" style={{ color: 'var(--aureo-text-mute)' }}>
+              {' '}/ {fmt(checkpoint.ingresoObjetivo)}
+            </span>
+          </div>
+          <div className="h-1.5 rounded-full mt-3 overflow-hidden" style={{ background: 'var(--aureo-bg)' }}>
+            <motion.div className="h-full rounded-full" style={{ background: pctCheckpoint >= 100 ? '#22C55E' : '#6C2BD9' }}
+              initial={{ width: 0 }} animate={{ width: `${pctCheckpoint}%` }} transition={{ duration: 0.7 }} />
+          </div>
+          <div className="text-[12px] mt-2" style={{ color: 'var(--aureo-text-dim)' }}>
+            {pctCheckpoint >= 100
+              ? 'Ya hay un proyecto sosteniéndose solo: puedes mantener la inversión con tranquilidad.'
+              : 'Mejor proyecto este mes. Si al llegar el checkpoint ninguno alcanza el objetivo, toca replantear la inversión.'}
           </div>
         </div>
-        <div className="tabular text-[24px] font-semibold mt-1">
-          {oculto ? '•••' : fmt(resumen.mejorDelMes)}
-          <span className="text-[12px] font-normal" style={{ color: 'var(--aureo-text-mute)' }}>
-            {' '}/ {fmt(CHECKPOINT.ingresoExtraObjetivo)}
-          </span>
-        </div>
-        <div className="h-1.5 rounded-full mt-3 overflow-hidden" style={{ background: 'var(--aureo-bg)' }}>
-          <motion.div className="h-full rounded-full" style={{ background: pctCheckpoint >= 100 ? '#22C55E' : '#6C2BD9' }}
-            initial={{ width: 0 }} animate={{ width: `${pctCheckpoint}%` }} transition={{ duration: 0.7 }} />
-        </div>
-        <div className="text-[12px] mt-2" style={{ color: 'var(--aureo-text-dim)' }}>
-          {pctCheckpoint >= 100
-            ? 'Ya hay un proyecto sosteniéndose solo: mantén la inversión y empieza a amortizar con lo que genera.'
-            : 'Mejor proyecto este mes. Si al llegar el checkpoint ninguno alcanza el objetivo, toca dejar de invertir y replantearlo.'}
-        </div>
-      </div>
+      )}
 
       <div className="mt-4">
         {!resumen.filas.length ? (
@@ -234,7 +253,7 @@ export default function ProyectosView({ movimientos, onBack, oculto, onCrear, on
 }
 
 function AltaMovimiento({ onClose, onCrear }) {
-  const [proyecto, setProyecto] = useState('tienda')
+  const [proyecto, setProyecto] = useState(TIPOS_PROYECTO[0].id)
   const [tipo, setTipo] = useState('inversion')
   const [concepto, setConcepto] = useState('')
   const [importe, setImporte] = useState('')
@@ -289,7 +308,7 @@ function AltaMovimiento({ onClose, onCrear }) {
       </Campo>
 
       <Campo label="Concepto">
-        <input value={concepto} onChange={(e) => setConcepto(e.target.value)} placeholder="Ej. Meta Ads semana 1" maxLength={80}
+        <input value={concepto} onChange={(e) => setConcepto(e.target.value)} placeholder="Ej. Publicidad semana 1" maxLength={80}
           className="w-full bg-transparent outline-none text-[16px]" />
       </Campo>
 
@@ -298,7 +317,7 @@ function AltaMovimiento({ onClose, onCrear }) {
         <div className="grid grid-cols-2 gap-2">
           {[
             { id: 'inversion', label: 'Inversión', nota: 'sale del presupuesto', color: '#EF4444', bg: '#FEE2E2' },
-            { id: 'ingreso', label: 'Ingreso', nota: 'cuenta para marzo', color: '#22C55E', bg: '#DCFCE7' },
+            { id: 'ingreso', label: 'Ingreso', nota: 'cuenta para el checkpoint', color: '#22C55E', bg: '#DCFCE7' },
           ].map((op) => {
             const activo = tipo === op.id
             return (

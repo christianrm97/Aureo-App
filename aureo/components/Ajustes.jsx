@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
-import { LogOut, Copy, Check, RefreshCw, Smartphone, Target, ShieldCheck, Pencil, ChevronDown, Download, Trash2 } from 'lucide-react'
+import { LogOut, Copy, Check, RefreshCw, Smartphone, Target, ShieldCheck, Pencil, ChevronDown, Download, Trash2, Rocket } from 'lucide-react'
 import { CATEGORIAS } from '@/lib/gastos'
 import { fmt2, api, PageHeader, Campo, Boton } from './ui'
 
@@ -14,6 +14,7 @@ import { fmt2, api, PageHeader, Campo, Boton } from './ui'
 export default function Ajustes({ usuario, perfil, cuentas, onBack, onCambio }) {
   const [objetivo, setObjetivo] = useState(String(perfil?.objetivo ?? ''))
   const [fondo, setFondo] = useState(String(perfil?.fondo_emergencia ?? ''))
+  const [fechaObjetivo, setFechaObjetivo] = useState(perfil?.fecha_objetivo ?? '')
   const [guardando, setGuardando] = useState(false)
   const [copiado, setCopiado] = useState(null)
   const [guiaAbierta, setGuiaAbierta] = useState(false)
@@ -26,6 +27,7 @@ export default function Ajustes({ usuario, perfil, cuentas, onBack, onCambio }) 
       body: JSON.stringify({
         objetivo: parseFloat(String(objetivo).replace(',', '.')) || 0,
         fondo_emergencia: parseFloat(String(fondo).replace(',', '.')) || 0,
+        ...(fechaObjetivo ? { fecha_objetivo: fechaObjetivo } : {}),
       }),
     }).catch(() => null)
     setGuardando(false)
@@ -98,11 +100,17 @@ export default function Ajustes({ usuario, perfil, cuentas, onBack, onCambio }) 
               className="flex-1 min-w-0 bg-transparent outline-none tabular text-[26px] font-semibold" />
           </div>
         </Campo>
+        <Campo label="Fecha del objetivo">
+          <input type="date" value={fechaObjetivo} onChange={(e) => setFechaObjetivo(e.target.value)}
+            aria-label="Fecha del objetivo" className="w-full bg-transparent outline-none text-[16px]" />
+        </Campo>
         <Boton type="button" onClick={guardar} disabled={guardando}>
           {guardando ? 'Guardando…' : 'Guardar objetivo'}
         </Boton>
         {aviso && <div className="text-[12.5px] text-center mt-2.5" style={{ color: 'var(--aureo-text-dim)' }}>{aviso}</div>}
       </div>
+
+      <PlanPersonal perfil={perfil} onCambio={onCambio} />
 
       <AtajoIPhone token={perfil?.shortcut_token} copiado={copiado} onCopiar={copiar}
         abierta={guiaAbierta} onAbrir={() => setGuiaAbierta((v) => !v)} onRegenerar={regenerar} />
@@ -255,7 +263,7 @@ function AtajoIPhone({ token, copiado, onCopiar, abierta, onAbrir, onRegenerar }
           <div className="rounded-2xl p-3" style={{ background: 'var(--aureo-surface-2)', border: '1px solid var(--aureo-border)' }}>
             <pre className="text-[11.5px] whitespace-pre-wrap break-words m-0">{`{
   "importe": <la entrada pedida>,
-  "categoria": "Bleap",
+  "categoria": "${CATEGORIAS[0]}",
   "nota": "Café"
 }`}</pre>
           </div>
@@ -350,6 +358,76 @@ function TusDatos() {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+/**
+ * Presupuesto de proyectos y checkpoint de este usuario. Son opcionales: si no
+ * los rellena, esas tarjetas no aparecen. Vaciar un campo lo quita.
+ */
+function PlanPersonal({ perfil, onCambio }) {
+  const texto = (v) => (v === null || v === undefined ? '' : String(v))
+  const [v, setV] = useState({
+    proyectos_inicial: texto(perfil?.proyectos_inicial),
+    proyectos_aporte: texto(perfil?.proyectos_aporte),
+    proyectos_tope: texto(perfil?.proyectos_tope),
+    proyectos_inicio: texto(perfil?.proyectos_inicio),
+    checkpoint_fecha: texto(perfil?.checkpoint_fecha),
+    checkpoint_ingreso: texto(perfil?.checkpoint_ingreso),
+  })
+  const [estado, setEstado] = useState(null)
+  const cambiar = (campo) => (e) => setV({ ...v, [campo]: e.target.value })
+
+  const guardar = async () => {
+    setEstado('Guardando…')
+    const cuerpo = Object.fromEntries(
+      Object.entries(v).map(([k, x]) => [k, String(x).trim() === '' ? null : String(x).trim().replace(',', '.')]),
+    )
+    const res = await api('perfil', { method: 'PATCH', body: JSON.stringify(cuerpo) }).catch(() => null)
+    if (res && res.ok) {
+      onCambio(res.perfil)
+      setEstado('Guardado')
+    } else {
+      setEstado(res?.error ?? 'No se pudo guardar')
+    }
+  }
+
+  const euros = (campo, etiqueta) => (
+    <Campo label={etiqueta}>
+      <div className="flex items-baseline gap-1">
+        <span className="text-[18px] font-semibold" style={{ color: 'var(--aureo-text-mute)' }}>€</span>
+        <input inputMode="decimal" value={v[campo]} onChange={cambiar(campo)} placeholder="—" aria-label={etiqueta}
+          className="flex-1 min-w-0 bg-transparent outline-none tabular text-[18px] font-semibold" />
+      </div>
+    </Campo>
+  )
+  const fecha = (campo, etiqueta) => (
+    <Campo label={etiqueta}>
+      <input type="date" value={v[campo]} onChange={cambiar(campo)} aria-label={etiqueta}
+        className="w-full bg-transparent outline-none text-[15px]" />
+    </Campo>
+  )
+
+  return (
+    <div className="aureo-card mt-4 p-5">
+      <div className="flex items-center gap-2 mb-1">
+        <Rocket className="w-4 h-4" style={{ color: 'var(--aureo-purple)' }} />
+        <span className="text-[14px] font-semibold">Proyectos y checkpoint</span>
+      </div>
+      <p className="text-[12.5px] leading-snug mb-3" style={{ color: 'var(--aureo-text-dim)' }}>
+        Opcional. Si tienes proyectos paralelos, define cuánto les dedicas y cuándo deberían dar resultados.
+      </p>
+      <div className="grid grid-cols-2 gap-x-3">
+        {euros('proyectos_inicial', 'Presupuesto inicial')}
+        {euros('proyectos_aporte', 'Aportación al mes')}
+        {euros('proyectos_tope', 'Tope de gasto al mes')}
+        {fecha('proyectos_inicio', 'Desde')}
+        {fecha('checkpoint_fecha', 'Fecha del checkpoint')}
+        {euros('checkpoint_ingreso', 'Ingreso extra objetivo')}
+      </div>
+      <Boton type="button" onClick={guardar}>Guardar plan</Boton>
+      {estado && <div role="status" className="text-[12.5px] text-center mt-2.5" style={{ color: 'var(--aureo-text-dim)' }}>{estado}</div>}
     </div>
   )
 }

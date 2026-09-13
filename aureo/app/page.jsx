@@ -30,8 +30,8 @@ import Bienvenida from '@/components/Bienvenida'
 import Ajustes from '@/components/Ajustes'
 import SimuladorView from '@/components/SimuladorView'
 import { fmt, fmt2, api, SectionHeader, PageHeader, Vacio } from '@/components/ui'
-import { OBJETIVO as OBJETIVO_DEF, FECHA_OBJETIVO, FONDO_EMERGENCIA as FONDO_DEF, CHECKPOINT, PRESUPUESTO_PROYECTOS, presupuestoProyectos } from '@/lib/perfil'
-import { resumen, analizar, proyectar, impactoGasto } from '@/lib/finanzas'
+import { DEFECTO, fechaObjetivoDe, planProyectosDe, checkpointDe, presupuestoProyectos, mesCorto } from '@/lib/perfil'
+import { resumen, analizar, proyectar, impactoGasto, mesesHasta } from '@/lib/finanzas'
 
 const ICONS = {
   landmark: Landmark, piggybank: PiggyBank, users: Users, creditcard: CreditCard,
@@ -39,14 +39,18 @@ const ICONS = {
 }
 
 const CATEGORIAS = [
-  { id: 'Bleap',         label: 'Bleap',         color: '#8B5CF6', bg: '#EDE4FE' },
-  { id: 'Cuenta Pareja', label: 'Cuenta Pareja', color: '#EC4899', bg: '#FCE7F3' },
-  { id: 'Efectivo',      label: 'Efectivo',      color: '#F59E0B', bg: '#FEF3C7' },
-  { id: 'Suscripcion',   label: 'Suscripción',   color: '#3B82F6', bg: '#DBEAFE' },
-  { id: 'Recibo',        label: 'Recibo',        color: '#22C55E', bg: '#DCFCE7' },
+  { id: 'Comida',      label: 'Comida',      color: '#F59E0B', bg: '#FEF3C7' },
+  { id: 'Transporte',  label: 'Transporte',  color: '#3B82F6', bg: '#DBEAFE' },
+  { id: 'Ocio',        label: 'Ocio',        color: '#EC4899', bg: '#FCE7F3' },
+  { id: 'Compras',     label: 'Compras',     color: '#8B5CF6', bg: '#EDE4FE' },
+  { id: 'Hogar',       label: 'Hogar',       color: '#14B8A6', bg: '#CCFBF1' },
+  { id: 'Suscripcion', label: 'Suscripción', color: '#6366F1', bg: '#E0E7FF' },
+  { id: 'Recibo',      label: 'Recibo',      color: '#22C55E', bg: '#DCFCE7' },
+  { id: 'Otros',       label: 'Otros',       color: '#9A93A8', bg: '#ECE7F1' },
 ]
 
-const catDe = (id) => CATEGORIAS.find((c) => c.id === id) || CATEGORIAS[0]
+// Un gasto antiguo puede traer una categoria que ya no existe: se pinta con su nombre, en gris.
+const catDe = (id) => CATEGORIAS.find((c) => c.id === id) || { id, label: id || 'Otros', color: '#9A93A8', bg: '#ECE7F1' }
 
 // ==================== APP ====================
 export default function App() {
@@ -143,15 +147,19 @@ export default function App() {
     () => cuentas.filter((c) => !c.inversion).reduce((s, c) => s + c.saldo, 0) - gastadoTotal + cobradoPuntual,
     [cuentas, gastadoTotal, cobradoPuntual],
   )
-  const OBJETIVO = Number(perfil?.objetivo ?? OBJETIVO_DEF)
-  const FONDO_EMERGENCIA = Number(perfil?.fondo_emergencia ?? FONDO_DEF)
+  // Todo lo que define el plan sale del perfil de ESTE usuario, nunca de constantes.
+  const OBJETIVO = Number(perfil?.objetivo ?? DEFECTO.objetivo) || DEFECTO.objetivo
+  const FONDO_EMERGENCIA = Number(perfil?.fondo_emergencia ?? DEFECTO.fondoEmergencia)
+  const fechaObjetivo = useMemo(() => fechaObjetivoDe(perfil), [perfil])
+  const planProyectos = useMemo(() => planProyectosDe(perfil), [perfil])
+  const checkpoint = useMemo(() => checkpointDe(perfil), [perfil])
   const progreso = Math.min(100, Math.max(0, (liquido / OBJETIVO) * 100))
 
   // Estado que consume el motor: todo lo que compromete dinero cada mes
   const estado = useMemo(() => ({
     liquido,
     objetivo: OBJETIVO,
-    fechaObjetivo: FECHA_OBJETIVO,
+    fechaObjetivo,
     recurrentes: recurrentes.map((r) => ({ importe: Number(r.importe), tipo: r.tipo, dia: r.dia })),
     suscripciones: suscripciones.map((s) => ({ cuota: Number(s.cuota) })),
     recibos: recibos.map((r) => ({ importe: mensualizar({ ...r, importe: Number(r.importe) }) })),
@@ -159,7 +167,7 @@ export default function App() {
     ingresosExtra: ingresos.map((i) => ({ importe: Number(i.importe), tipo: i.tipo })),
     inversionMensual: recurrentes.filter((r) => r.tipo === 'inversion').reduce((s, r) => s + Math.abs(Number(r.importe)), 0),
     fondoEmergencia: FONDO_EMERGENCIA,
-  }), [liquido, recurrentes, suscripciones, recibos, deudas, ingresos])
+  }), [liquido, OBJETIVO, fechaObjetivo, FONDO_EMERGENCIA, recurrentes, suscripciones, recibos, deudas, ingresos])
 
   const balance = useMemo(() => resumen(estado), [estado])
   const analisis = useMemo(() => analizar(estado), [estado])
@@ -247,10 +255,10 @@ export default function App() {
               onFijos={() => setTab('fijos')} onSimulador={() => setTab('simulador')} />
             <InstalarIOS />
             <AnalisisAureo analisis={analisis} oculto={oculto} onAbrir={() => setConsejoAbierto(true)} />
-            <SpaceObjetivo liquido={liquido} objetivo={OBJETIVO} progreso={progreso} oculto={oculto} analisis={analisis} />
-            <FondoYCheckpoint balance={balance} ingresosExtra={balance.ingresosExtra} oculto={oculto}
+            <SpaceObjetivo liquido={liquido} objetivo={OBJETIVO} fecha={fechaObjetivo} progreso={progreso} oculto={oculto} analisis={analisis} />
+            <FondoYCheckpoint balance={balance} fondo={FONDO_EMERGENCIA} checkpoint={checkpoint} ingresosExtra={balance.ingresosExtra} oculto={oculto}
               onIngresos={() => setTab('ingresos')} />
-            <ProyectosResumen movimientos={proyectos} oculto={oculto} onAbrir={() => setTab('proyectos')} />
+            <ProyectosResumen movimientos={proyectos} plan={planProyectos} oculto={oculto} onAbrir={() => setTab('proyectos')} />
             <VigilanteAcceso onAbrir={() => setTab('vigilante')} />
             <SectionHeader title="Cuentas" right="Mercados" onRight={() => setTab('mercados')} />
             <CuentasLista cuentas={cuentas} gastadoTotal={gastadoTotal} oculto={oculto} />
@@ -260,7 +268,7 @@ export default function App() {
               nIngresos={ingresos.length} nSubs={suscripciones.length} nRecibos={recibos.length} nDeudas={deudas.length} />
             <SectionHeader title="Próximas" right="Ver todas" onRight={() => setTab('fijos')} />
             <RecurrentesWidget recurrentes={recurrentes} oculto={oculto} />
-            <SectionHeader title="Proyección" right="Ene 2027" />
+            <SectionHeader title="Proyección" right={mesCorto(fechaObjetivo)} />
             <ProyeccionCard data={proyeccion} objetivo={OBJETIVO} balance={balance} />
             <SectionHeader title="Actividad reciente" right={gastos.length > 6 ? 'Ver todo' : null} onRight={() => setTab('analysis')} />
             <UltimosGastos gastos={gastos} onDelete={handleDelete} />
@@ -297,7 +305,7 @@ export default function App() {
         )}
 
         {tab === 'proyectos' && (
-          <ProyectosView movimientos={proyectos} onBack={() => setTab('home')} oculto={oculto}
+          <ProyectosView movimientos={proyectos} plan={planProyectos} checkpoint={checkpoint} onAjustes={() => setTab('ajustes')} onBack={() => setTab('home')} oculto={oculto}
             onCrear={crear} onBorrar={borrar} />
         )}
 
@@ -308,7 +316,7 @@ export default function App() {
         )}
 
         {tab === 'goal' && (
-          <GoalView liquido={liquido} objetivo={OBJETIVO} progreso={progreso} proyeccion={proyeccion}
+          <GoalView liquido={liquido} objetivo={OBJETIVO} fecha={fechaObjetivo} progreso={progreso} proyeccion={proyeccion}
             analisis={analisis} balance={balance} onBack={() => setTab('home')} oculto={oculto} />
         )}
       </div>
@@ -426,22 +434,18 @@ function AnalisisAureo({ analisis, oculto, onAbrir }) {
 function SectionHeaderLocal() { return null }
 
 /**
- * Las dos reglas del plan: el colchon de emergencia que no se
- * toca, y el checkpoint de marzo 2027 (un proyecto dando >= 200 EUR/mes).
+ * El colchon de emergencia de este usuario y, si lo ha definido, su checkpoint:
+ * la fecha en la que sus ingresos extra deberian llegar a una cifra mensual.
  */
-function FondoYCheckpoint({ balance, ingresosExtra, oculto, onIngresos }) {
-  const cubierto = balance.bloqueado >= FONDO_EMERGENCIA
-  const pctFondo = Math.min(100, (balance.bloqueado / FONDO_EMERGENCIA) * 100)
-
-  const hoy = new Date()
-  const mesesAlCheckpoint = Math.max(
-    0,
-    (CHECKPOINT.fecha.getFullYear() - hoy.getFullYear()) * 12 + (CHECKPOINT.fecha.getMonth() - hoy.getMonth()),
-  )
-  const pctCheck = Math.min(100, (ingresosExtra / CHECKPOINT.ingresoExtraObjetivo) * 100)
+function FondoYCheckpoint({ balance, fondo, checkpoint, ingresosExtra, oculto, onIngresos }) {
+  const cubierto = fondo > 0 && balance.bloqueado >= fondo
+  const pctFondo = fondo > 0 ? Math.min(100, (balance.bloqueado / fondo) * 100) : 0
+  // Pasada la fecha no hay meses negativos: el checkpoint es este mes o ya fue.
+  const meses = checkpoint ? Math.max(0, mesesHasta(new Date(), checkpoint.fecha)) : 0
+  const pctCheck = checkpoint ? Math.min(100, (ingresosExtra / checkpoint.ingresoObjetivo) * 100) : 0
 
   return (
-    <div className="grid grid-cols-2 gap-3 mt-3">
+    <div className={`grid gap-3 mt-3 ${checkpoint ? 'grid-cols-2' : 'grid-cols-1'}`}>
       <div className="aureo-card p-4">
         <div className="w-9 h-9 rounded-full grid place-items-center mb-2"
           style={{ background: cubierto ? '#DCFCE7' : 'var(--aureo-purple-soft)' }}>
@@ -450,39 +454,41 @@ function FondoYCheckpoint({ balance, ingresosExtra, oculto, onIngresos }) {
         <div className="text-[13px] font-semibold leading-tight">Fondo de emergencia</div>
         <div className="tabular text-[17px] font-semibold mt-1">
           {oculto ? '••• €' : fmt(balance.bloqueado)}
-          <span className="text-[12px] font-normal" style={{ color: 'var(--aureo-text-mute)' }}> / {fmt(FONDO_EMERGENCIA)}</span>
+          <span className="text-[12px] font-normal" style={{ color: 'var(--aureo-text-mute)' }}> / {fmt(fondo)}</span>
         </div>
         <div className="h-1.5 rounded-full overflow-hidden mt-2" style={{ background: '#F0EBF6' }}>
           <motion.div initial={{ width: 0 }} animate={{ width: pctFondo + '%' }} transition={{ duration: 0.8 }}
             className="h-full rounded-full" style={{ background: cubierto ? '#22C55E' : 'linear-gradient(90deg,#6C2BD9,#8B5CF6)' }} />
         </div>
         <div className="text-[11px] mt-1.5" style={{ color: 'var(--aureo-text-mute)' }}>
-          {cubierto ? 'Intocable: solo coche, médico u ordenador' : 'Te faltan ' + fmt(FONDO_EMERGENCIA - balance.bloqueado)}
+          {cubierto ? 'Intocable: solo para imprevistos' : 'Te faltan ' + fmt(Math.max(0, fondo - balance.bloqueado))}
         </div>
       </div>
 
-      <button onClick={onIngresos} className="aureo-card p-4 text-left">
-        <div className="w-9 h-9 rounded-full grid place-items-center mb-2" style={{ background: '#FEF3C7' }}>
-          <Flag className="w-4 h-4" style={{ color: '#F59E0B' }} />
-        </div>
-        <div className="text-[13px] font-semibold leading-tight">Checkpoint marzo 2027</div>
-        <div className="tabular text-[17px] font-semibold mt-1">
-          {oculto ? '••• €' : fmt(ingresosExtra)}
-          <span className="text-[12px] font-normal" style={{ color: 'var(--aureo-text-mute)' }}> / {fmt(CHECKPOINT.ingresoExtraObjetivo)}</span>
-        </div>
-        <div className="h-1.5 rounded-full overflow-hidden mt-2" style={{ background: '#F0EBF6' }}>
-          <motion.div initial={{ width: 0 }} animate={{ width: pctCheck + '%' }} transition={{ duration: 0.8 }}
-            className="h-full rounded-full" style={{ background: pctCheck >= 100 ? '#22C55E' : '#F59E0B' }} />
-        </div>
-        <div className="text-[11px] mt-1.5" style={{ color: 'var(--aureo-text-mute)' }}>
-          {mesesAlCheckpoint} meses · un proyecto dando 200 €/mes
-        </div>
-      </button>
+      {checkpoint && (
+        <button onClick={onIngresos} className="aureo-card p-4 text-left">
+          <div className="w-9 h-9 rounded-full grid place-items-center mb-2" style={{ background: '#FEF3C7' }}>
+            <Flag className="w-4 h-4" style={{ color: '#F59E0B' }} />
+          </div>
+          <div className="text-[13px] font-semibold leading-tight">Checkpoint {mesCorto(checkpoint.fecha)}</div>
+          <div className="tabular text-[17px] font-semibold mt-1">
+            {oculto ? '••• €' : fmt(ingresosExtra)}
+            <span className="text-[12px] font-normal" style={{ color: 'var(--aureo-text-mute)' }}> / {fmt(checkpoint.ingresoObjetivo)}</span>
+          </div>
+          <div className="h-1.5 rounded-full overflow-hidden mt-2" style={{ background: '#F0EBF6' }}>
+            <motion.div initial={{ width: 0 }} animate={{ width: pctCheck + '%' }} transition={{ duration: 0.8 }}
+              className="h-full rounded-full" style={{ background: pctCheck >= 100 ? '#22C55E' : '#F59E0B' }} />
+          </div>
+          <div className="text-[11px] mt-1.5" style={{ color: 'var(--aureo-text-mute)' }}>
+            {meses} {meses === 1 ? 'mes' : 'meses'} · ingresos extra al mes
+          </div>
+        </button>
+      )}
     </div>
   )
 }
 
-function SpaceObjetivo({ liquido, objetivo, progreso, oculto, analisis }) {
+function SpaceObjetivo({ liquido, objetivo, fecha, progreso, oculto, analisis }) {
   const falta = Math.max(0, objetivo - liquido)
   return (
     <motion.section initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="aureo-card mt-5 p-5">
@@ -492,7 +498,7 @@ function SpaceObjetivo({ liquido, objetivo, progreso, oculto, analisis }) {
             <Target className="w-5 h-5" style={{ color: 'var(--aureo-purple)' }} />
           </div>
           <div>
-            <div className="text-[14px] font-semibold">Objetivo enero 2027</div>
+            <div className="text-[14px] font-semibold">Objetivo {mesCorto(fecha)}</div>
             <div className="text-[12px]" style={{ color: 'var(--aureo-text-dim)' }}>
               {analisis.mesLlegada ? `Llegas en ${analisis.mesLlegada}` : 'Espacio de ahorro'}
             </div>
@@ -519,7 +525,7 @@ function SpaceObjetivo({ liquido, objetivo, progreso, oculto, analisis }) {
  * Resumen del presupuesto de proyectos en la home. Lo importante de un vistazo
  * es cuanto queda y si este mes ya se ha pasado del tope.
  */
-function ProyectosResumen({ movimientos, oculto, onAbrir }) {
+function ProyectosResumen({ movimientos, plan, oculto, onAbrir }) {
   const { restante, mes } = useMemo(() => {
     const hoy = new Date()
     let invertido = 0
@@ -531,10 +537,10 @@ function ProyectosResumen({ movimientos, oculto, onAbrir }) {
       const d = new Date(Number(m.ts))
       if (d.getMonth() === hoy.getMonth() && d.getFullYear() === hoy.getFullYear()) mes += importe
     }
-    return { restante: presupuestoProyectos(invertido).disponible, mes }
-  }, [movimientos])
+    return { restante: plan ? presupuestoProyectos(invertido, plan).disponible : null, mes }
+  }, [movimientos, plan])
 
-  const pasado = mes > PRESUPUESTO_PROYECTOS.topeMensual
+  const pasado = plan ? mes > plan.topeMensual : false
 
   return (
     <motion.button initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} onClick={onAbrir}
@@ -545,14 +551,17 @@ function ProyectosResumen({ movimientos, oculto, onAbrir }) {
       <div className="flex-1 min-w-0">
         <div className="text-[14px] font-semibold">Proyectos</div>
         <div className="text-[12px]" style={{ color: pasado ? '#EF4444' : 'var(--aureo-text-dim)' }}>
-          {oculto ? '•••' : fmt(mes)} de {fmt(PRESUPUESTO_PROYECTOS.topeMensual)} este mes
-          {pasado && ' · te has pasado'}
+          {plan
+            ? <>{oculto ? '•••' : fmt(mes)} de {fmt(plan.topeMensual)} este mes{pasado && ' · te has pasado'}</>
+            : 'Inversión e ingresos de tus proyectos'}
         </div>
       </div>
-      <div className="text-right flex-shrink-0">
-        <div className="tabular text-[16px] font-semibold">{oculto ? '••• €' : fmt(restante)}</div>
-        <div className="text-[11px]" style={{ color: 'var(--aureo-text-mute)' }}>disponible</div>
-      </div>
+      {restante !== null && (
+        <div className="text-right flex-shrink-0">
+          <div className="tabular text-[16px] font-semibold">{oculto ? '••• €' : fmt(restante)}</div>
+          <div className="text-[11px]" style={{ color: 'var(--aureo-text-mute)' }}>disponible</div>
+        </div>
+      )}
     </motion.button>
   )
 }
@@ -851,13 +860,13 @@ function AnalisisView({ gastos, onBack, oculto }) {
 }
 
 // -------------- GOAL VIEW --------------
-function GoalView({ liquido, objetivo, progreso, proyeccion, analisis, balance, onBack, oculto }) {
+function GoalView({ liquido, objetivo, fecha, progreso, proyeccion, analisis, balance, onBack, oculto }) {
   const t = TONO[analisis.severidad]
   return (
     <>
       <PageHeader title="Objetivo" onBack={onBack} />
       <motion.section initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="hero-gradient rounded-[28px] p-6 text-white relative overflow-hidden">
-        <span className="chip"><Target className="w-3.5 h-3.5" /> Meta enero 2027</span>
+        <span className="chip"><Target className="w-3.5 h-3.5" /> Meta {mesCorto(fecha)}</span>
         <div className="tabular text-[46px] font-semibold mt-4">{oculto ? '•••• €' : fmt(objetivo)}</div>
         <div className="text-[13px] text-white/80 mt-1">
           Actualmente: <span className="font-medium text-white tabular">{oculto ? '•••' : fmt(liquido)}</span>
@@ -944,7 +953,7 @@ function BottomNav({ onAdd, tab, setTab }) {
 function ModalGasto({ onClose, onSubmit, estado }) {
   const [nota, setNota] = useState('')
   const [importe, setImporte] = useState('')
-  const [categoria, setCategoria] = useState('Bleap')
+  const [categoria, setCategoria] = useState(CATEGORIAS[0].id)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
 

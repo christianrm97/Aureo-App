@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { randomBytes } from 'node:crypto'
 import { supabaseServidor, usuarioActual } from '@/lib/supabase/servidor'
-import { OBJETIVO, FONDO_EMERGENCIA } from '@/lib/perfil'
+import { DEFECTO } from '@/lib/perfil'
 
 export const dynamic = 'force-dynamic'
 
@@ -27,8 +27,9 @@ export async function GET() {
     .insert({
       id: usuario.id,
       nombre: usuario.user_metadata?.full_name ?? usuario.email?.split('@')[0] ?? 'Yo',
-      objetivo: OBJETIVO,
-      fondo_emergencia: FONDO_EMERGENCIA,
+      objetivo: DEFECTO.objetivo,
+      fondo_emergencia: DEFECTO.fondoEmergencia,
+      fecha_objetivo: unAnioVista(),
       shortcut_token: randomBytes(24).toString('base64url'),
     })
     .select()
@@ -62,6 +63,26 @@ export async function PATCH(req: NextRequest) {
     }
     cambios[campo] = Math.round(n * 100) / 100
   }
+
+  // Plan opcional de proyectos y checkpoint: null lo borra, un valor lo fija.
+  for (const campo of ['proyectos_inicial', 'proyectos_aporte', 'proyectos_tope', 'checkpoint_ingreso'] as const) {
+    if (body[campo] === undefined) continue
+    if (body[campo] === null) { cambios[campo] = null; continue }
+    const n = Number(body[campo])
+    if (!Number.isFinite(n) || n < 0 || n > 100_000_000) {
+      return NextResponse.json({ ok: false, error: `${campo} inválido` }, { status: 422 })
+    }
+    cambios[campo] = Math.round(n * 100) / 100
+  }
+  for (const campo of ['proyectos_inicio', 'checkpoint_fecha'] as const) {
+    if (body[campo] === undefined) continue
+    if (body[campo] === null) { cambios[campo] = null; continue }
+    const valor = body[campo]
+    if (typeof valor !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(valor)) {
+      return NextResponse.json({ ok: false, error: `${campo} inválida (AAAA-MM-DD)` }, { status: 422 })
+    }
+    cambios[campo] = valor
+  }
   if (typeof body.nombre === 'string' && body.nombre.trim()) {
     cambios.nombre = body.nombre.trim().slice(0, 60)
   }
@@ -88,4 +109,10 @@ function publico(u: { id: string; email?: string; user_metadata?: Record<string,
     nombre: (u.user_metadata?.full_name as string) ?? (u.email?.split('@')[0] ?? 'Yo'),
     avatar: (u.user_metadata?.avatar_url as string) ?? null,
   }
+}
+
+/** Fecha del objetivo de una cuenta nueva: el dia 1 del mes, dentro de un anio. */
+function unAnioVista() {
+  const hoy = new Date()
+  return new Date(Date.UTC(hoy.getFullYear(), hoy.getMonth() + DEFECTO.mesesObjetivo, 1)).toISOString().slice(0, 10)
 }
