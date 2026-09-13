@@ -1,0 +1,138 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Paleta Starling adaptada a Aureo */
+  --aureo-bg: #F4F1F7;
+  --aureo-surface: #FFFFFF;
+  --aureo-surface-2: #FAF8FC;
+  --aureo-border: #ECE7F1;
+  --aureo-border-strong: #DDD3E6;
+
+  --aureo-purple: #6C2BD9;        /* primary */
+  --aureo-purple-dark: #4A1D9E;
+  --aureo-purple-soft: #EFE7FB;
+  --aureo-purple-mid: #8B5CF6;
+
+  --aureo-text: #14101B;
+  --aureo-text-dim: #6B647A;
+  --aureo-text-mute: #9A93A8;
+
+  --aureo-green: #22C55E;
+  --aureo-green-soft: #DCFCE7;
+  --aureo-red: #EF4444;
+  --aureo-red-soft: #FEE2E2;
+  --aureo-blue: #3B82F6;
+  --aureo-blue-soft: #DBEAFE;
+  --aureo-amber: #F59E0B;
+  --aureo-amber-soft: #FEF3C7;
+  --aureo-pink: #EC4899;
+  --aureo-pink-soft: #FCE7F3;
+  --aureo-teal: #14B8A6;
+  --aureo-teal-soft: #CCFBF1;
+}
+
+html, body {
+  background: var(--aureo-bg);
+  color: var(--aureo-text);
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', var(--font-inter), 'Inter', system-ui, sans-serif;
+  font-optical-sizing: auto;
+  -webkit-font-smoothing: antialiased;
+  letter-spacing: -0.01em;
+}
+
+body {
+  min-height: 100vh;
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #DDD3E6; border-radius: 3px; }
+
+.aureo-card {
+  background: var(--aureo-surface);
+  border: 1px solid var(--aureo-border);
+  border-radius: 24px;
+}
+
+.aureo-row {
+  background: var(--aureo-surface);
+  border-radius: 20px;
+}
+
+.tabular { font-variant-numeric: tabular-nums; font-feature-settings: 'tnum'; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+.hero-gradient {
+  background:
+    radial-gradient(120% 100% at 0% 0%, rgba(255,255,255,0.18) 0%, transparent 55%),
+    radial-gradient(120% 120% at 100% 100%, rgba(255,180,255,0.16) 0%, transparent 50%),
+    linear-gradient(140deg, #6C2BD9 0%, #4A1D9E 55%, #2E0B6E 100%);
+}
+
+.chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 12px; border-radius: 999px;
+  background: rgba(255,255,255,0.14); color: #fff;
+  font-size: 12px; font-weight: 500;
+  border: 1px solid rgba(255,255,255,0.12);
+}
+
+.pill-button {
+  border-radius: 999px;
+  padding: 12px 20px;
+  font-weight: 600;
+  font-size: 15px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.pill-button:active { transform: scale(0.97); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Prosa de las paginas legales: ancho comodo y jerarquia clara al leer */
+.legal h2 {
+  font-size: 17px;
+  font-weight: 600;
+  margin: 28px 0 10px;
+  letter-spacing: -0.01em;
+}
+.legal h2:first-child { margin-top: 0; }
+.legal p, .legal li {
+  font-size: 14.5px;
+  line-height: 1.65;
+  color: var(--aureo-text-dim);
+}
+.legal p { margin-bottom: 12px; }
+.legal ul { margin: 0 0 14px; padding-left: 20px; list-style: disc; }
+.legal li { margin-bottom: 7px; }
+.legal strong { color: var(--aureo-text); font-weight: 600; }
+.legal a { color: var(--aureo-purple); text-decoration: underline; text-underline-offset: 2px; }
+.legal code {
+  font-size: 13px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: var(--aureo-surface-2);
+  border: 1px solid var(--aureo-border);
+}
+.legal table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 6px 0 16px;
+  font-size: 13.5px;
+  display: block;
+  overflow-x: auto;
+}
+.legal th, .legal td {
+  text-align: left;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--aureo-border);
+  color: var(--aureo-text-dim);
+  white-space: nowrap;
+}
+.legal th { color: var(--aureo-text); font-weight: 600; }
