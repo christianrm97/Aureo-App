@@ -59,6 +59,8 @@ export interface Cotizacion {
   color: string
   /** Cierres de los ultimos dias para pintar la linea de tendencia. */
   serie: number[]
+  /** De donde sale el precio: Yahoo por defecto, Finnhub si Yahoo falla. */
+  fuente?: 'yahoo' | 'finnhub'
 }
 
 /** Formatea segun la magnitud: 68.330 EUR y 0,1832 EUR piden decimales distintos. */
@@ -73,5 +75,65 @@ export function formatearPrecio(c: Pick<Cotizacion, 'price' | 'currency' | 'deci
     }).format(c.price)
   } catch {
     return `${c.price.toFixed(c.decimales)} ${moneda}`
+  }
+}
+
+/**
+ * Simbolos equivalentes en Finnhub, la reserva cuando Yahoo no responde.
+ * Solo equivalentes exactos: un activo sin equivalente no se sustituye por uno
+ * parecido (un ETF en lugar de un indice). Mejor un hueco que un precio que no
+ * es el que dice ser.
+ */
+export const FINNHUB: Record<string, { symbol: string; currency: string }> = {
+  sp500:     { symbol: '^GSPC',           currency: 'USD' },
+  nasdaq:    { symbol: '^IXIC',           currency: 'USD' },
+  nasdaq100: { symbol: '^NDX',            currency: 'USD' },
+  ibex:      { symbol: '^IBEX',           currency: 'EUR' },
+  eurostoxx: { symbol: '^STOXX50E',       currency: 'EUR' },
+  btc:       { symbol: 'BINANCE:BTCEUR',  currency: 'EUR' },
+  eth:       { symbol: 'BINANCE:ETHEUR',  currency: 'EUR' },
+  sol:       { symbol: 'BINANCE:SOLEUR',  currency: 'EUR' },
+  xrp:       { symbol: 'BINANCE:XRPEUR',  currency: 'EUR' },
+  ada:       { symbol: 'BINANCE:ADAEUR',  currency: 'EUR' },
+  eurusd:    { symbol: 'OANDA:EUR_USD',   currency: 'USD' },
+  eurgbp:    { symbol: 'OANDA:EUR_GBP',   currency: 'GBP' },
+  eurjpy:    { symbol: 'OANDA:EUR_JPY',   currency: 'JPY' },
+  eurchf:    { symbol: 'OANDA:EUR_CHF',   currency: 'CHF' },
+  oro:       { symbol: 'OANDA:XAU_USD',   currency: 'USD' },
+  petroleo:  { symbol: 'OANDA:WTICO_USD', currency: 'USD' },
+}
+
+/** Respuesta de GET /quote de Finnhub: `c` precio actual, `pc` cierre anterior. */
+export interface CotizacionFinnhub {
+  c?: number
+  pc?: number
+  t?: number
+}
+
+/**
+ * Convierte una cotizacion de Finnhub al formato de la app. Finnhub responde
+ * con ceros cuando un simbolo no entra en el plan contratado: eso es "sin
+ * dato", nunca un precio de cero.
+ */
+export function desdeFinnhub(s: Simbolo, q: CotizacionFinnhub | null | undefined): Cotizacion | null {
+  const destino = FINNHUB[s.id]
+  const price = Number(q?.c)
+  const previous = Number(q?.pc)
+  if (!destino || !Number.isFinite(price) || price <= 0 || !Number.isFinite(previous) || previous <= 0) return null
+  return {
+    id: s.id,
+    symbol: s.symbol,
+    nombre: s.nombre,
+    grupo: s.grupo,
+    currency: destino.currency,
+    price,
+    previous,
+    changePct: ((price - previous) / previous) * 100,
+    marketState: 'UNKNOWN',
+    decimales: s.decimales ?? 2,
+    color: s.color,
+    // La cotizacion de Finnhub no trae historico: la linea une el cierre anterior con el precio actual.
+    serie: [previous, price],
+    fuente: 'finnhub',
   }
 }

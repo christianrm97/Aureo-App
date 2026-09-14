@@ -617,7 +617,7 @@ function CuentasLista({ cuentas, gastadoTotal, oculto }) {
     <motion.section initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="aureo-card overflow-hidden">
       {cuentas.map((c, i) => {
         const Icon = ICONS[c.icon] || Landmark
-        const saldo = c.id === 'bleap' ? Math.max(0, c.saldo - gastadoTotal) : c.saldo
+        const saldo = c.saldo
         return (
           <div key={c.id} className="flex items-center gap-3 px-5 py-4" style={{ borderTop: i === 0 ? 'none' : '1px solid var(--aureo-border)' }}>
             <div className="w-11 h-11 rounded-full grid place-items-center flex-shrink-0" style={{ background: c.bg }}>

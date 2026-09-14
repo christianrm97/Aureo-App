@@ -1,14 +1,14 @@
 import { NextResponse } from 'next/server'
 import { comprobarLimite, LIMITES } from '@/lib/limite'
-import { SIMBOLOS, type Cotizacion } from '@/lib/mercados'
+import { SIMBOLOS, FINNHUB, desdeFinnhub, type Cotizacion, type Simbolo } from '@/lib/mercados'
 
-// 60 s de cache compartida: con mil usuarios mirando, Yahoo recibe una peticion
-// por simbolo y minuto, no mil.
+// 60 s de cache compartida: con mil usuarios mirando, cada proveedor recibe una
+// peticion por simbolo y minuto, no mil.
 export const revalidate = 60
 
 const CABECERAS = { 'User-Agent': 'Mozilla/5.0 (compatible; AureoBot/1.0)' }
 
-async function cotizar(s: (typeof SIMBOLOS)[number]): Promise<Cotizacion | null> {
+async function cotizar(s: Simbolo): Promise<Cotizacion | null> {
   try {
     const res = await fetch(
       `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(s.symbol)}?interval=1d&range=1mo`,
@@ -49,7 +49,32 @@ async function cotizar(s: (typeof SIMBOLOS)[number]): Promise<Cotizacion | null>
       decimales: s.decimales ?? 2,
       color: s.color,
       serie: cierres,
+      fuente: 'yahoo',
     }
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Reserva: Finnhub, solo para lo que Yahoo no ha podido servir. Yahoo es un
+ * endpoint no oficial que puede cambiar sin avisar; con la reserva la pestana
+ * de mercados no se queda en blanco.
+ *
+ * La clave viaja en cabecera y no en la URL, para que no acabe en ningun
+ * registro de peticiones.
+ */
+async function reserva(s: Simbolo): Promise<Cotizacion | null> {
+  const clave = process.env.FINNHUB_API_KEY
+  const destino = FINNHUB[s.id]
+  if (!clave || !destino) return null
+  try {
+    const res = await fetch(`https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(destino.symbol)}`, {
+      headers: { 'X-Finnhub-Token': clave },
+      next: { revalidate },
+    })
+    if (!res.ok) return null
+    return desdeFinnhub(s, await res.json())
   } catch {
     return null
   }
@@ -57,10 +82,12 @@ async function cotizar(s: (typeof SIMBOLOS)[number]): Promise<Cotizacion | null>
 
 // GET /api/precios — indices, cripto, divisas y materias primas
 export async function GET(req: Request) {
-  const frenado = comprobarLimite(req, "precios", LIMITES.publica)
+  const frenado = comprobarLimite(req, 'precios', LIMITES.publica)
   if (frenado) return frenado
 
-  const resultados = await Promise.all(SIMBOLOS.map(cotizar))
+  const yahoo = await Promise.all(SIMBOLOS.map(cotizar))
+  // Solo se gasta cuota de Finnhub en los simbolos que Yahoo no ha servido.
+  const resultados = await Promise.all(SIMBOLOS.map((s, i) => yahoo[i] ?? reserva(s)))
 
   const data: Record<string, Cotizacion> = {}
   for (const c of resultados) {
@@ -73,5 +100,6 @@ export async function GET(req: Request) {
     data,
     actualizado: Date.now(),
     fallidos: SIMBOLOS.filter((s) => !data[s.id]).map((s) => s.id),
+    reserva: Object.values(data).filter((c) => c.fuente === 'finnhub').map((c) => c.id),
   })
 }

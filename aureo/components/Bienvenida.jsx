@@ -106,7 +106,7 @@ export default function Bienvenida({ nombre, onListo }) {
             Nombre
           </span>
           <input value={nombreCuenta} onChange={(e) => setNombreCuenta(e.target.value)} maxLength={40}
-            placeholder={plantilla.nombre === 'Efectivo' ? 'Ej. Cartera' : 'Ej. OpenBank'}
+            placeholder={plantilla.nombre === 'Efectivo' ? 'Ej. Cartera' : 'Ej. Cuenta nómina'}
             className="w-full bg-transparent outline-none text-[16px]" />
           <div className="h-px mt-2 mb-5" style={{ background: 'var(--aureo-border)' }} />
 

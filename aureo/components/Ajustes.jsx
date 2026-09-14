@@ -3,9 +3,10 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
-import { LogOut, Copy, Check, RefreshCw, Smartphone, Target, ShieldCheck, Pencil, ChevronDown, Download, Trash2, Rocket } from 'lucide-react'
+import { LogOut, Copy, Check, RefreshCw, Smartphone, Target, ShieldCheck, Pencil, ChevronDown, Download, Trash2, Rocket, HelpCircle } from 'lucide-react'
 import { CATEGORIAS } from '@/lib/gastos'
 import { fmt2, api, PageHeader, Campo, Boton } from './ui'
+import { PieLegal } from './Legal'
 
 /**
  * Ajustes del usuario: su objetivo, sus cuentas, el token del Atajo de iPhone
@@ -124,6 +125,18 @@ export default function Ajustes({ usuario, perfil, cuentas, onBack, onCambio }) 
         {cuentas.map((c) => <SaldoEditable key={c.id} cuenta={c} onCambio={onCambio} />)}
       </div>
 
+      <a href="/faq" className="aureo-card mt-4 p-5 flex items-center gap-3">
+        <div className="w-10 h-10 rounded-full grid place-items-center flex-shrink-0" style={{ background: 'var(--aureo-purple-soft)' }}>
+          <HelpCircle className="w-5 h-5" style={{ color: 'var(--aureo-purple)' }} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-[14px] font-semibold">Preguntas frecuentes</div>
+          <div className="text-[12px]" style={{ color: 'var(--aureo-text-dim)' }}>
+            Privacidad, bancos, extractos CSV, iPhone y tus datos
+          </div>
+        </div>
+      </a>
+
       <TusDatos />
 
       <div className="flex items-start gap-2 mt-5 mb-2 px-1">
@@ -133,6 +146,8 @@ export default function Ajustes({ usuario, perfil, cuentas, onBack, onCambio }) 
           puede leerlos. Aureo no se conecta a tu banco ni pide credenciales bancarias.
         </p>
       </div>
+
+      <PieLegal />
     </>
   )
 }

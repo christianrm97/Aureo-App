@@ -71,6 +71,7 @@ node --experimental-strip-types lib/finanzas.check.ts
 node --experimental-strip-types lib/simulador.check.ts
 node --experimental-strip-types lib/vigilante.check.ts
 node --experimental-strip-types lib/perfil.check.ts
+node --experimental-strip-types lib/mercados.check.ts
 ```
 
 ## Seguridad

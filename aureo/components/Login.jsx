@@ -1,5 +1,7 @@
 'use client'
 
+import { PieLegal } from './Legal'
+
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import {
@@ -119,6 +121,8 @@ export default function Login({ configurado, error, volver }) {
           Aureo no se conecta a tu banco ni pide credenciales bancarias.
           Los datos los introduces tú.
         </p>
+
+        <PieLegal />
       </div>
     </div>
   )
